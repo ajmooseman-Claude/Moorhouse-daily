@@ -10,6 +10,8 @@ async function call(method, path, body) {
 const ok = (cond, msg) => { if (!cond) { console.error("FAIL:", msg); process.exitCode = 1; } else console.log("ok  ", msg); };
 
 ok((await call("GET", "/api/state")).status === 401, "state needs sign-in");
+ok((await call("POST", "/api/main-man", { brief: "Morning." })).status === 401, "main man route needs its token");
+ok((await call("POST", "/api/feed?action=message", { message: "Hello" })).status === 401, "message box needs sign-in");
 ok((await call("PUT", "/api/desk", { priorities: [] })).status === 401, "desk needs sign-in");
 ok((await call("POST", "/api/login", { password: "wrong" })).status === 401, "wrong password rejected");
 ok((await call("POST", "/api/login", { password: "test" })).status === 200 && cookie.startsWith("md_session="), "right password signs in");
@@ -21,6 +23,7 @@ const d = await call("PUT", "/api/desk", { priorities: [{ text: "Send heads of t
 ok(d.status === 200 && d.j.desk.countdowns.length === 1, "desk saved and cleaned");
 ok((await call("PUT", "/api/settings", { voice: "Samantha" })).status === 200, "voice saved");
 ok((await call("GET", "/api/cron")).status === 401, "cron refuses without secret");
+ok((await call("POST", "/api/main-man", { brief: "Morning." })).status === 401, "main man route rejects the dashboard session");
 ok((await call("POST", "/api/ask", { question: "hi" })).status === 503, "ask explains missing API key");
 
 const s = await call("GET", "/api/state");

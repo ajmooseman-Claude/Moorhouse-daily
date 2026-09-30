@@ -9,7 +9,7 @@
   },
   "scripts": {
     "dev": "node dev-server.js",
-    "test": "node test/smoke.js"
+    "test": "node test/feed-view.js && node test/mainman.js && node test/smoke.js"
   },
   "dependencies": {
     "imapflow": "^2.1.2",

@@ -41,6 +41,10 @@ Project > Settings > Environment Variables. Add each of these for Production (se
 | `SESSION_SECRET` | 64 random characters. On a Mac, run `openssl rand -hex 32` in Terminal. |
 | `CRON_SECRET` | Another random string (same command). Vercel sends it with the morning job. |
 | `ANTHROPIC_API_KEY` | The key from step 1. |
+| `MAIN_MAN_API_KEY` | Optional. A long random string. The main man sends it as `Authorization: Bearer <key>` when it posts to the dashboard. |
+| `MAIN_MAN_WEBHOOK_URL` | Optional. Where the message box delivers what you type. Must be `https://` on Vercel. |
+| `MAIN_MAN_WEBHOOK_KEY` | Optional. Secret sent with each message. |
+| `MAIN_MAN_WEBHOOK_KEY_HEADER` | Optional. Header name for that secret. Leave it unset to send `Authorization: Bearer <key>`. Set `X-Api-Key` (or whatever the webhook expects) to send the key as that header's value. |
 
 Then Deployments > the latest one > Redeploy, so the new values take effect.
 
@@ -81,6 +85,44 @@ Microsoft needs a small app registration so the dashboard can ask for read-only 
 6. Dashboard › gear › Email accounts › + Outlook › Sign in with Microsoft. Enter the code it shows at microsoft.com/devicelogin and accept.
 
 If a work account says it needs admin approval, the Microsoft 365 administrator has to allow the app (Enterprise applications › Moorhouse Daily › Permissions › Grant admin consent).
+
+## The main man
+
+The assistant can post the morning brief, today's three things, and alerts. You can write back from the dashboard. Both sides use the same Redis store as the rest of the page (in memory when you run it locally without Redis).
+
+The morning brief he posts fills the brief already on the page. The morning job will not overwrite it later that day. Press Refresh on the brief if you want a new one written from the diary and the weather. The three things replace the three slots. A repeated notification with the same `id` does not create a second copy, and it will not mark a read or dismissed one as new again.
+
+Alerts show under **From The main man**, newest first, and new ones also pop up and sit in the bell tray, labelled The main man. The message box is behind the normal dashboard password. `POST /api/main-man` is not: it ignores the password and accepts only the bearer token, compared in constant time.
+
+```bash
+curl -s -X POST https://moorhouse-daily.vercel.app/api/main-man \
+  -H "Authorization: Bearer $MAIN_MAN_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "brief": "Two meetings today. Send the heads of terms before lunch.",
+    "priorities": ["Send the heads of terms", "Call the surveyor", "Review the 5pm draft"],
+    "notification": {
+      "id": "appleton-reply-42",
+      "title": "Prospect replied",
+      "body": "Helen answered the teaser.",
+      "business": "Appleton",
+      "link": "https://example.com/thread/42",
+      "priority": "high"
+    }
+  }'
+```
+
+Send any one of `brief`, `priorities` or `notification`, or all three. `business` is `Appleton`, `Bellgreave`, `5pm Theory`, `Personal` or `Other`. `priority` is optional: `low`, `normal` or `high`. `id` is optional, up to 80 characters (letters, numbers, `.`, `_`, `:` or `-`).
+
+Missing or wrong token: `401` and `{"error":"Not allowed"}`. The dashboard password is not accepted on this path. Anything other than JSON: `415`. A bad body: `400`. Success: `200` and `{"ok":true,...}`.
+
+A message from the dashboard is posted as JSON:
+
+```json
+{"message": "...", "sent_at": "2026-09-30T11:35:00.000Z", "source": "moorhouse-daily"}
+```
+
+Set the `MAIN_MAN_` variables for Production, then redeploy. Locally, without Redis, posts last only until you stop the process.
 
 ## Voice
 - **Talking to it:** the mic buttons and the Talk button in the dock use the browser's speech recognition (Safari and Chrome). The first time, allow microphone access for your address.
