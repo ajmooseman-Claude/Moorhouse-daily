@@ -1126,7 +1126,7 @@ async function pollFeed(){
   if(!state.ready||document.visibilityState!=="visible") return;
   try{ syncMainman(await api("/api/feed"),{pop:true}); }catch{}
 }
-setInterval(pollFeed,20000);
+setInterval(pollFeed,8000);
 
 /* ---------------- mail: pop-ups, tray, accounts ---------------- */
 const CAT={person:"Person",business:"Business",money:"Money"};
