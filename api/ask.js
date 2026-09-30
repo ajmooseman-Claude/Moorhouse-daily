@@ -3,6 +3,7 @@ import { askWithTools, STYLE } from "../lib/claude.js";
 import { getJSON, setJSON } from "../lib/store.js";
 import { addNote } from "./notes.js";
 import { cleanDesk } from "./desk.js";
+import { getSettings } from "../lib/today.js";
 
 const now = () => new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/London", weekday: "long", day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date());
 
@@ -10,7 +11,8 @@ export default route(["POST"], async (req, res, body) => {
   const q = clip(body.question, 2000).trim();
   if (!q) throw fail(400, "Ask something first.");
   const did = [];
-  const [today, notes] = await Promise.all([getJSON("today", {}), getJSON("notes", [])]);
+  const [today, notes, settings] = await Promise.all([getJSON("today", {}), getJSON("notes", []), getSettings()]);
+  const calName = Object.fromEntries(settings.calendars.map((c) => [c.id, c.name]));
   let desk = await getJSON("desk", { priorities: [], countdowns: [], queue: [] });
   const saveDesk = async () => { desk = cleanDesk(desk); await setJSON("desk", desk); };
 
@@ -29,7 +31,7 @@ export default route(["POST"], async (req, res, body) => {
   ];
 
   const context = JSON.stringify({
-    now: now(), weather: today.weather || null, diary: (today.agenda || []).slice(0, 40), brief: today.brief || null,
+    now: now(), weather: today.weather || null, diary: (today.agenda || []).slice(0, 60).map(({ cal, ...e }) => ({ ...e, calendar: calName[cal] || "" })), brief: today.brief || null,
     priorities: desk.priorities, countdowns: desk.countdowns, recent_notes: notes.slice(0, 20).map((n) => ({ text: n.text, created: n.created, pinned: n.pinned })),
   });
   const text = await askWithTools({

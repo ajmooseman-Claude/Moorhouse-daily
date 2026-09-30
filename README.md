@@ -11,7 +11,7 @@ A personal front page: morning brief, weather, iCloud diary, notebook, three dai
 | Notes, priorities, settings | Upstash Redis (free tier, added inside Vercel) |
 | Morning brief | Vercel Cron, weekdays, runs some time between 06:00 and 07:00 in summer (05:00 to 06:00 in winter) |
 | Weather | Open-Meteo, free, no key |
-| Diary | Your iCloud public calendar link |
+| Diary | Any number of iCloud, Google or Outlook calendar links, each colour-coded |
 | Brief, Ask, post drafts | Anthropic API (your key, pay as you go) |
 
 If the cron runs late or fails, the page writes a fresh brief the first time you open it each day, and keeps weather and diary current (at most every 30 minutes) while it's open.
@@ -49,7 +49,7 @@ Then Deployments > the latest one > Redeploy, so the new values take effect.
 
 ### 6. First visit
 1. Open your address, enter the password.
-2. Gear icon (top right): set the weather town, paste your iCloud calendar link, choose the reading voice.
+2. Gear icon (top right): set the weather town, add your calendars (name, link and colour for each), choose the reading voice.
 3. On iPhone: Safari > Share > Add to Home Screen, for a full-screen app icon.
 
 ## Voice

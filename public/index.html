@@ -299,6 +299,31 @@ body.listening #dockTalk{color:var(--danger)}
 .login .field{text-align:center}
 .login .btn{width:100%}
 #login::backdrop{background:rgba(0,0,0,.18);-webkit-backdrop-filter:blur(24px) saturate(160%);backdrop-filter:blur(24px) saturate(160%)}
+.dlg{max-height:calc(100dvh - 48px);overflow:auto}
+.calset{display:grid;gap:8px}
+.calset .lbl{font:600 13px var(--f-sans);color:var(--ink-2)}
+.btn.sm{height:32px;padding:0 12px;font-size:13px}
+.callist{display:grid;gap:8px}
+.calrow{display:grid;grid-template-columns:34px 1fr 32px;gap:8px 10px;align-items:center;padding:10px;border-radius:var(--r-in);background:var(--hair)}
+.calrow .url{grid-column:2/4}
+.calrow .field{padding:9px 12px;font:400 14px var(--f-sans)}
+.calrow .url.field{font:400 12px var(--f-mono)}
+.swatch{width:30px;height:30px;border-radius:50%;border:0;background:var(--c);box-shadow:inset 0 0 0 2px rgba(255,255,255,.55),0 2px 6px rgba(0,0,0,.15);cursor:pointer}
+.palette{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap}
+.palette button{width:26px;height:26px;border-radius:50%;border:0;background:var(--c);cursor:pointer;box-shadow:inset 0 0 0 2px rgba(255,255,255,.5)}
+.palette button[aria-pressed="true"]{outline:2px solid var(--ink);outline-offset:2px}
+.howto summary{cursor:pointer;font:600 13px var(--f-sans);color:var(--tint)}
+.howto[open] summary{margin-bottom:8px}
+.howto ol{margin:0 0 8px}
+.legend{display:flex;gap:6px;flex-wrap:wrap}
+.chip{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px 0 8px;border-radius:999px;border:0;background:var(--hair);color:var(--ink);font:600 12px var(--f-sans);cursor:pointer;transition:opacity .2s}
+.chip i{width:9px;height:9px;border-radius:50%;background:var(--c)}
+.chip[aria-pressed="false"]{opacity:.45}
+.chip[aria-pressed="false"] i{background:transparent;box-shadow:inset 0 0 0 1.5px var(--c)}
+.ev{--c:var(--tint)}
+.ev::before{background:var(--c)!important}
+.ev .calname{font:600 11px var(--f-sans);color:var(--c);margin-top:2px}
+.ev.done::before{opacity:.45}
 </style>
 </head>
 <body>
@@ -438,13 +463,18 @@ body.listening #dockTalk{color:var(--danger)}
     <div class="head"><h2>Settings</h2><button type="button" class="ib" id="closeSettings" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
     <label>Reading voice<span class="row" style="flex-wrap:nowrap"><select class="sel" id="voiceSel" style="flex:1;max-width:none"></select><button type="button" class="btn plain" id="voiceTest">Play</button></span></label>
     <label>Weather location<input class="field" id="setPlace" placeholder="e.g. Manchester"></label>
-    <label>iCloud calendar link<input class="field mono" id="setCal" placeholder="webcal://p…-caldav.icloud.com/published/2/…"></label>
+    <div class="calset">
+      <div class="head"><span class="lbl">Calendars</span><button type="button" class="btn plain sm" id="addCal">+ Add calendar</button></div>
+      <div id="calList" class="callist"></div>
+    </div>
+    <details class="howto"><summary>Where do I find a calendar link?</summary>
     <ol>
-      <li>On your iPhone open Calendar, tap Calendars, then the ⓘ beside your calendar.</li>
-      <li>Turn on Public Calendar and tap Share Link, then Copy.</li>
-      <li>Paste it above and save. Your diary loads straight away and refreshes through the day.</li>
+      <li><b>iCloud:</b> on your iPhone open Calendar, tap Calendars, then the ⓘ beside a calendar. Turn on Public Calendar, tap Share Link, then Copy.</li>
+      <li><b>Google:</b> calendar.google.com › Settings › pick the calendar › Integrate calendar › Secret address in iCal format.</li>
+      <li><b>Outlook / Microsoft 365:</b> Outlook on the web › Settings › Calendar › Shared calendars › Publish a calendar, then copy the ICS link.</li>
     </ol>
-    <p>The link is read-only, but anyone who has it can see that calendar. It's stored on your own server, behind your password.</p>
+    <p>These links are read-only, but anyone who has one can see that calendar. They're stored on your own server, behind your password.</p>
+    </details>
     <h3 style="margin:6px 0 0;font:600 15px var(--f-sans)">Adding a voice like Samantha</h3>
     <ol>
       <li><b>Mac:</b> System Settings › Accessibility › Spoken Content › System voice › Manage Voices, then tick Samantha under English (US).</li>
@@ -650,11 +680,13 @@ function renderWeather(){
 }
 
 function renderAgenda(){
-  const b=$("#agBody"), ev=(state.today?.agenda||[]).slice();
-  if(!ev.length){
-    b.innerHTML=state.settings.icalUrl
-      ?`<div class="empty"><strong>Nothing in the diary.</strong>Your calendar is connected and there's nothing booked in the next seven days.</div>`
-      :`<div class="empty"><strong>Connect your iCloud calendar.</strong>Paste your calendar's share link in Settings and your next seven days appear here.<div><button class="btn plain" type="button" onclick="document.getElementById('settingsBtn').click()">Open Settings</button></div></div>`;
+  const b=$("#agBody"), cals=state.settings.calendars||[];
+  const calById=Object.fromEntries(cals.map(c=>[c.id,c]));
+  let hidden=new Set(store.get("md.hiddenCals",[]));
+  const ev=(state.today?.agenda||[]).filter(e=>!hidden.has(e.cal));
+  const legend=cals.length>1?`<div class="legend">${cals.map(c=>`<button type="button" class="chip" data-cal="${esc(c.id)}" style="--c:${esc(c.color)}" aria-pressed="${!hidden.has(c.id)}" title="Show or hide ${esc(c.name)}"><i></i>${esc(c.name)}</button>`).join("")}</div>`:"";
+  if(!cals.length&&!(state.today?.agenda||[]).length){
+    b.innerHTML=`<div class="empty"><strong>Connect your calendars.</strong>Add iCloud, Google or Outlook calendar links in Settings, each with its own colour, and your next seven days appear here.<div><button class="btn plain" type="button" onclick="document.getElementById('settingsBtn').click()">Open Settings</button></div></div>`;
     return}
   const today=todayISO(), p=londonParts(), nowMin=(+p.hour)*60+(+p.minute);
   const byDay={}; ev.sort((a,b)=>(a.date+(a.allDay?"00:00":a.start||"")).localeCompare(b.date+(b.allDay?"00:00":b.start||"")));
@@ -662,8 +694,8 @@ function renderAgenda(){
   const toMin=t=>{if(!t)return null;const[h,m]=t.split(":");return +h*60+ +m};
   let nextMarked=false;
   const days=Object.keys(byDay).slice(0,7);
-  if(!days.length){b.innerHTML=`<div class="empty"><strong>A clear week.</strong>Nothing booked in the next seven days.</div>`;return}
-  b.innerHTML=days.map(d=>{
+  if(!days.length){b.innerHTML=legend+`<div class="empty"><strong>A clear week.</strong>${hidden.size?"Nothing in the calendars you're showing.":"Nothing booked in the next seven days."}</div>`;return}
+  b.innerHTML=legend+days.map(d=>{
     const isT=d===today, lab=new Date(d+"T12:00:00Z").toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"short",timeZone:"UTC"});
     return `<div class="aday"><h3>${isT?'<span class="today">Today</span> · ':""}${esc(lab)}</h3>${byDay[d].map(e=>{
       let pill="",cls="";
@@ -671,8 +703,11 @@ function renderAgenda(){
         if(nowMin>=en){pill='<span class="pill past">Done</span>';cls="done"}
         else if(nowMin>=s){pill='<span class="pill now">Now</span>'}
         else if(!nextMarked){nextMarked=true;const m=s-nowMin;pill=`<span class="pill next">In ${m<60?m+"m":Math.floor(m/60)+"h "+(m%60)+"m"}</span>`}}
-      return `<div class="ev ${cls}"><span class="t">${e.allDay?"All day":esc(e.start)}${!e.allDay&&e.end?`<br><span style="color:var(--faint)">${esc(e.end)}</span>`:""}</span><div><div class="title">${esc(e.title)}</div>${e.where?`<div class="where">${esc(e.where)}</div>`:""}</div>${pill}</div>`}).join("")}</div>`}).join("");
+      const c=calById[e.cal];
+      return `<div class="ev ${cls}"${c?` style="--c:${esc(c.color)}"`:""}><span class="t">${e.allDay?"All day":esc(e.start)}${!e.allDay&&e.end?`<br><span style="color:var(--ink-3)">${esc(e.end)}</span>`:""}</span><div><div class="title">${esc(e.title)}</div>${e.where?`<div class="where">${esc(e.where)}</div>`:""}${c&&cals.length>1?`<div class="calname">${esc(c.name)}</div>`:""}</div>${pill}</div>`}).join("")}</div>`}).join("");
 }
+$("#agBody").addEventListener("click",e=>{const chip=e.target.closest("[data-cal]");if(!chip)return;
+  const h=new Set(store.get("md.hiddenCals",[]));const id=chip.dataset.cal;h.has(id)?h.delete(id):h.add(id);store.set("md.hiddenCals",[...h]);renderAgenda();tone("open")});
 
 function renderNotes(){
   const b=$("#notes"); let list=state.notes.slice().sort((a,b)=>(b.pinned-a.pinned)||(b.created||"").localeCompare(a.created||""));
@@ -813,12 +848,33 @@ $("#cd").onclick=e=>{const b=e.target.closest("[data-cd]");if(!b)return;state.de
 
 /* ---------------- settings ---------------- */
 const dlg=$("#settings");
-$("#settingsBtn").onclick=()=>{$("#setPlace").value=state.settings.place||"";$("#setCal").value=state.settings.icalUrl||"";try{dlg.showModal()}catch{dlg.setAttribute("open","")}};
+const CAL_COLOURS=["#FF6B4A","#8B6BFF","#14B8A6","#3A9BF0","#F5A524","#EC4F8B","#6BBF3A","#7A8699"];
+let calDraft=[], paletteOpen=null;
+function renderCalList(){
+  const box=$("#calList");
+  if(!calDraft.length){box.innerHTML=`<div class="empty">No calendars yet. Press <strong>+ Add calendar</strong> and paste a link.</div>`;return}
+  box.innerHTML=calDraft.map((c,i)=>`<div class="calrow" data-i="${i}">
+    <button type="button" class="swatch" style="--c:${esc(c.color)}" data-act="palette" aria-label="Colour for ${esc(c.name||"calendar")}"></button>
+    <input class="field" data-k="name" value="${esc(c.name)}" placeholder="Name, e.g. Work" aria-label="Calendar name">
+    <button type="button" class="ib" data-act="remove" aria-label="Remove calendar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></button>
+    <input class="field url" data-k="url" value="${esc(c.url)}" placeholder="webcal://… or https://…ics" aria-label="Calendar link">
+    ${paletteOpen===i?`<div class="palette">${CAL_COLOURS.map(col=>`<button type="button" style="--c:${col}" data-col="${col}" aria-pressed="${col.toLowerCase()===String(c.color).toLowerCase()}" aria-label="Colour ${col}"></button>`).join("")}</div>`:""}
+  </div>`).join("");
+}
+$("#calList").addEventListener("input",e=>{const row=e.target.closest(".calrow");if(!row||!e.target.dataset.k)return;calDraft[+row.dataset.i][e.target.dataset.k]=e.target.value});
+$("#calList").addEventListener("click",e=>{const row=e.target.closest(".calrow");if(!row)return;const i=+row.dataset.i;
+  const b=e.target.closest("button");if(!b)return;
+  if(b.dataset.act==="palette"){paletteOpen=paletteOpen===i?null:i;renderCalList()}
+  else if(b.dataset.col){calDraft[i].color=b.dataset.col;paletteOpen=null;renderCalList();tone("open")}
+  else if(b.dataset.act==="remove"){calDraft.splice(i,1);paletteOpen=null;renderCalList();tone("del")}});
+$("#addCal").onclick=()=>{const used=new Set(calDraft.map(c=>c.color));calDraft.push({id:"",name:"",url:"",color:CAL_COLOURS.find(c=>!used.has(c))||CAL_COLOURS[calDraft.length%8]});paletteOpen=null;renderCalList();
+  setTimeout(()=>$("#calList .calrow:last-child input[data-k=name]")?.focus(),50)};
+$("#settingsBtn").onclick=()=>{$("#setPlace").value=state.settings.place||"";calDraft=JSON.parse(JSON.stringify(state.settings.calendars||[]));paletteOpen=null;renderCalList();try{dlg.showModal()}catch{dlg.setAttribute("open","")}};
 $("#settingsForm").onsubmit=async e=>{
   if(e.submitter?.value!=="save") return;
   e.preventDefault();
   const btn=$("#saveSettings"); btn.disabled=true;
-  try{const j=await api("/api/settings",{method:"PUT",body:{place:$("#setPlace").value.trim(),icalUrl:$("#setCal").value.trim()}});
+  try{const j=await api("/api/settings",{method:"PUT",body:{place:$("#setPlace").value.trim(),calendars:calDraft.filter(c=>c.url.trim()).map(c=>({...c,url:c.url.trim(),name:c.name.trim()}))}});
     state.settings=j.settings; if(j.today) state.today=j.today; renderWeather(); renderAgenda();
     const errs=j.today?.errors||[]; toast(errs.length?errs.join(" · "):"Saved. Weather and diary updated."); tone("save"); dlg.close()}
   catch(err){toast(err.message)}
