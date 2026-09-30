@@ -15,7 +15,6 @@ const { hasRedis, getJSON, setJSON } = await import("../lib/store.js");
 const { default: mainMan } = await import("../api/main-man.js");
 const { default: feed } = await import("../api/feed.js");
 const { default: login } = await import("../api/login.js");
-const { assistantBriefStands } = await import("../lib/today.js");
 const { bearerMatches } = await import("../lib/mainman.js");
 import http from "node:http";
 
@@ -93,12 +92,13 @@ r = await call(mainMan, { headers: auth, body: {
   priorities: ["Send the heads of terms", "Call the surveyor"],
   notification: { id: "appleton-reply-42", title: "Prospect replied", body: "Helen answered the teaser.", business: "Appleton Strategic", link: "https://example.com/thread/42", priority: "high" },
 } });
-ok(r.status === 200 && r.j.ok === true && r.j.brief.from === "main-man" && r.j.brief.text.startsWith("Two meetings"), "success with the token sets the brief: " + r.status + " " + JSON.stringify(r.j?.error || ""));
+ok(r.status === 200 && r.j.ok === true && r.j.brief === "ignored" && /written by the dashboard/.test(r.j.note), "a brief from The main man is ignored, the rest still lands: " + r.status + " " + JSON.stringify(r.j?.error || ""));
 ok(r.j.priorities.items[0].text === "Send the heads of terms" && r.j.priorities.items[2].text === "" && r.j.priorities.items.length === 3, "up to three things, spare slots cleared");
 ok(r.j.notification.business === "appleton" && r.j.duplicate === false, "notification stored with the business tag");
 
-const today = await getJSON("today");
-ok(today.brief.startsWith("Two meetings") && today.briefFrom === "main-man" && today.briefDate, "the brief fills today's morning brief slot");
+ok((await getJSON("today", null)) == null, "the morning brief slot is left alone");
+r = await call(mainMan, { headers: auth, body: { brief: "Only a brief." } });
+ok(r.status === 400 && /written by the dashboard/.test(r.j.error), "a brief on its own is refused with a clear reason");
 const desk = await getJSON("desk");
 ok(desk.countdowns[0].label === "Holiday" && desk.queue[0].text === "draft", "priorities do not wipe the rest of the desk");
 
@@ -176,10 +176,16 @@ process.env.MAIN_MAN_WEBHOOK_URL = "http://127.0.0.1:9/hook";
 r = await call(feed, { method: "POST", url: "/api/feed?action=message", cookie: signed.cookie, body: { message: "Nobody home." } });
 ok(r.status === 502 && /didn't answer/.test(r.j.error), "an unreachable webhook is a clear error");
 
-const day = "2026-09-30";
-ok(assistantBriefStands({ briefFrom: "main-man", briefDate: day, brief: "Hello" }, day) === true, "an assistant brief stands for today");
-ok(assistantBriefStands({ briefFrom: "main-man", briefDate: day, brief: "Hello" }, day, true) === false, "Refresh may replace it");
-ok(assistantBriefStands({ briefFrom: "daily", briefDate: day, brief: "Hello" }, day) === false, "a generated brief can be rewritten");
-ok(assistantBriefStands({ briefFrom: "main-man", briefDate: "2026-09-29", brief: "Hello" }, day) === false, "yesterday's brief does not stand");
 
 if (process.exitCode) process.exit(process.exitCode);
+
+// A brief The main man left earlier today is replaced by the dashboard's own on the next load.
+{
+  const { londonToday } = await import("../lib/calendar.js");
+  const { currentToday } = await import("../lib/today.js");
+  await setJSON("today", { brief: "Grok wrote this.", briefDate: londonToday(), briefFrom: "main-man", liveAt: new Date().toISOString(), weather: null, agenda: [] });
+  const origFetch = globalThis.fetch; globalThis.fetch = async () => new Response("{}", { status: 503 });
+  const t = await currentToday();
+  globalThis.fetch = origFetch;
+  ok(t.briefFrom === "daily" && t.brief !== "Grok wrote this.", "an old brief from The main man is replaced by the dashboard's");
+}

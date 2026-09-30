@@ -88,9 +88,9 @@ If a work account says it needs admin approval, the Microsoft 365 administrator 
 
 ## The main man
 
-The assistant can post the morning brief, today's three things, and alerts. You can write back from the dashboard. Both sides use the same Redis store as the rest of the page (in memory when you run it locally without Redis).
+The assistant can post today's three things and alerts. The morning brief is written by the dashboard itself; a `brief` field sent here is ignored. You can write back from the dashboard. Both sides use the same Redis store as the rest of the page (in memory when you run it locally without Redis).
 
-The morning brief he posts fills the brief already on the page. The morning job will not overwrite it later that day. Press Refresh on the brief if you want a new one written from the diary and the weather. The three things replace the three slots. A repeated notification with the same `id` does not create a second copy, and it will not mark a read or dismissed one as new again.
+The three things replace the three slots. A repeated notification with the same `id` does not create a second copy, and it will not mark a read or dismissed one as new again.
 
 Alerts show under **From The main man**, newest first, and new ones also pop up and sit in the bell tray, labelled The main man. The message box is behind the normal dashboard password. `POST /api/main-man` is not: it ignores the password and accepts only the bearer token, compared in constant time.
 
@@ -99,7 +99,6 @@ curl -s -X POST https://moorhouse-daily.vercel.app/api/main-man \
   -H "Authorization: Bearer $MAIN_MAN_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "brief": "Two meetings today. Send the heads of terms before lunch.",
     "priorities": ["Send the heads of terms", "Call the surveyor", "Review the 5pm draft"],
     "notification": {
       "id": "appleton-reply-42",
@@ -112,7 +111,7 @@ curl -s -X POST https://moorhouse-daily.vercel.app/api/main-man \
   }'
 ```
 
-Send any one of `brief`, `priorities` or `notification`, or all three. `business` is `Appleton`, `Bellgreave`, `5pm Theory`, `Personal` or `Other`. `priority` is optional: `low`, `normal` or `high`. `id` is optional, up to 80 characters (letters, numbers, `.`, `_`, `:` or `-`).
+Send `priorities`, `notification`, or both. A `brief` is ignored (and on its own gets a `400` explaining why). `business` is `Appleton`, `Bellgreave`, `5pm Theory`, `Personal` or `Other`. `priority` is optional: `low`, `normal` or `high`. `id` is optional, up to 80 characters (letters, numbers, `.`, `_`, `:` or `-`).
 
 Missing or wrong token: `401` and `{"error":"Not allowed"}`. The dashboard password is not accepted on this path. Anything other than JSON: `415`. A bad body: `400`. Success: `200` and `{"ok":true,...}`.
 

@@ -731,8 +731,7 @@ function wxIcon(c){const k=wxKind(c),s='fill="none" stroke="currentColor" stroke
 function renderBrief(){
   const t=state.today;
   if(t?.brief){$("#briefText").textContent=t.brief}
-  const who=t?.briefFrom==="main-man"?" · The main man":"";
-  $("#briefWhen").textContent=t?.updatedAt?("Updated "+relTime(t.updatedAt)+who):"Waiting for the first run";
+  $("#briefWhen").textContent=t?.updatedAt?("Updated "+relTime(t.updatedAt)):"Waiting for the first run";
   $("#footLeft").textContent=t?.updatedAt?("Edition set "+fmt({weekday:"short",hour:"2-digit",minute:"2-digit"},new Date(t.updatedAt))):"Edition not yet set";
 }
 function relTime(iso){const d=new Date(iso),m=Math.round((Date.now()-d)/6e4);
