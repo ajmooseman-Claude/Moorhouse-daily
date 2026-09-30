@@ -1,0 +1,17 @@
+{
+  "name": "moorhouse-daily",
+  "version": "1.0.0",
+  "private": true,
+  "description": "James Moorhouse's personal dashboard: brief, weather, diary, notebook, priorities, social desk and voice assistant.",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "node dev-server.js",
+    "test": "node test/smoke.js"
+  },
+  "dependencies": {
+    "node-ical": "0.27.2"
+  }
+}

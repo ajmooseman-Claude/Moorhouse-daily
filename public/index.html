@@ -1,0 +1,903 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Daily">
+<meta name="theme-color" content="#F4A38A">
+<meta name="robots" content="noindex,nofollow">
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<title>The Moorhouse Daily</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: an iOS-style lock screen hero (giant clock over a living wallpaper), then a 12-column
+   field of Liquid Glass widgets, and a floating glass dock for the actions you reach for most. */
+:root{
+  /* light: bright glass over a pastel wallpaper */
+  --ink:#1D1D1F;
+  --ink-2:rgba(29,29,31,.64);
+  --ink-3:rgba(29,29,31,.42);
+  --glass:rgba(255,255,255,.46);
+  --glass-2:rgba(255,255,255,.62);
+  --glass-edge:rgba(255,255,255,.85);
+  --glass-edge-low:rgba(255,255,255,.18);
+  --hair:rgba(29,29,31,.08);
+  --shadow:0 1px 1px rgba(20,30,60,.04),0 12px 40px -8px rgba(20,30,60,.22);
+  --veil:rgba(255,255,255,.04);
+  --tint:#D4451E;          /* coral, the one accent */
+  --tint-ink:#FFFFFF;
+  --tint-soft:rgba(212,69,30,.14);
+  --good:#28A745;
+  --warn:#E48A1B;
+  --danger:#E5372B;
+  --hero-ink:#FFFFFF;
+  --f-sans:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Geist","Helvetica Neue",system-ui,sans-serif;
+  --f-round:ui-rounded,"SF Pro Rounded",-apple-system,"Geist",system-ui,sans-serif;
+  --f-mono:ui-monospace,"SF Mono","Geist Mono",Menlo,monospace;
+  --r:28px;           /* outer widget radius */
+  --r-in:16px;        /* inner radius = outer - padding (concentric) */
+  --spring:cubic-bezier(.32,.72,0,1);
+  /* wallpaper blobs, re-tinted by time of day from script */
+  --w1:#FFB38A; --w2:#FF7AA2; --w3:#C59BFF; --w4:#5FE0C8; --w5:#FFE08A;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --ink:#F5F5F7;--ink-2:rgba(245,245,247,.7);--ink-3:rgba(245,245,247,.46);
+  --glass:rgba(30,32,40,.38);--glass-2:rgba(44,46,56,.55);--glass-edge:rgba(255,255,255,.34);--glass-edge-low:rgba(255,255,255,.05);
+  --hair:rgba(255,255,255,.09);--shadow:0 1px 1px rgba(0,0,0,.2),0 18px 50px -10px rgba(0,0,0,.55);
+  --veil:rgba(6,8,16,.46);--tint:#FF7A52;--tint-soft:rgba(255,122,82,.2);--good:#34C759;--warn:#FF9F0A;--danger:#FF453A;color-scheme:dark}}
+:root[data-theme="dark"]{
+  --ink:#F5F5F7;--ink-2:rgba(245,245,247,.7);--ink-3:rgba(245,245,247,.46);
+  --glass:rgba(30,32,40,.38);--glass-2:rgba(44,46,56,.55);--glass-edge:rgba(255,255,255,.34);--glass-edge-low:rgba(255,255,255,.05);
+  --hair:rgba(255,255,255,.09);--shadow:0 1px 1px rgba(0,0,0,.2),0 18px 50px -10px rgba(0,0,0,.55);
+  --veil:rgba(6,8,16,.46);--tint:#FF7A52;--tint-soft:rgba(255,122,82,.2);--good:#34C759;--warn:#FF9F0A;--danger:#FF453A;color-scheme:dark}
+
+[hidden]{display:none!important}
+html{background:#F4A38A}
+body{background:#F4A38A;color:var(--ink);font:15px/1.5 var(--f-sans);letter-spacing:-.01em;-webkit-font-smoothing:antialiased;
+  padding-inline:clamp(16px,3vw,40px);padding-block:18px calc(120px + env(safe-area-inset-bottom,0px));min-height:100%}
+button,input,textarea,select{font:inherit;color:inherit;letter-spacing:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--tint);outline-offset:2px;border-radius:10px}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+
+/* ---------- wallpaper: fixed, living, tinted by the hour ---------- */
+.wall{position:fixed;inset:-10%;z-index:0;pointer-events:none;overflow:hidden;
+  background:
+   radial-gradient(40% 50% at 18% 22%,var(--w1),transparent 70%),
+   radial-gradient(45% 55% at 82% 18%,var(--w3),transparent 70%),
+   radial-gradient(50% 50% at 70% 78%,var(--w4),transparent 70%),
+   radial-gradient(45% 45% at 22% 82%,var(--w2),transparent 70%),
+   radial-gradient(30% 30% at 50% 50%,var(--w5),transparent 70%),
+   linear-gradient(160deg,var(--w3),var(--w2));
+  filter:saturate(1.15);transition:background 2s}
+.wall::before,.wall::after{content:"";position:absolute;width:60vmax;height:60vmax;border-radius:50%;filter:blur(60px);opacity:.75;will-change:transform}
+.wall::before{background:var(--w4);left:-10vmax;top:30%;animation:drift1 38s ease-in-out infinite alternate}
+.wall::after{background:var(--w1);right:-15vmax;top:-10vmax;animation:drift2 46s ease-in-out infinite alternate}
+@keyframes drift1{to{transform:translate(35vw,-20vh) scale(1.2)}}
+@keyframes drift2{to{transform:translate(-30vw,35vh) scale(.85)}}
+.veil{position:fixed;inset:0;z-index:0;pointer-events:none;background:var(--veil)}
+.grain{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.06;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+.wrap{position:relative;z-index:1;max-width:1280px;margin:0 auto;display:grid;gap:20px}
+
+/* ---------- the glass material ---------- */
+.glass{position:relative;background:var(--glass);border-radius:var(--r);
+  -webkit-backdrop-filter:blur(30px) saturate(180%);backdrop-filter:blur(30px) saturate(180%);
+  box-shadow:var(--shadow),inset 0 1px 0 0 var(--glass-edge),inset 0 -1px 0 0 var(--glass-edge-low);isolation:isolate}
+/* specular rim: bright where light hits (top-left), fading round the edge */
+.glass::before{content:"";position:absolute;inset:0;border-radius:inherit;padding:1px;pointer-events:none;z-index:-1;
+  background:linear-gradient(135deg,var(--glass-edge) 0%,transparent 38%,transparent 62%,var(--glass-edge-low) 100%);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude}
+/* soft sheen across the top third */
+.glass::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:-1;
+  background:linear-gradient(180deg,rgba(255,255,255,.16),transparent 40%)}
+
+/* ---------- lock-screen hero ---------- */
+.hero{display:grid;grid-template-columns:1fr auto;gap:10px 20px;align-items:start;color:var(--hero-ink);padding-top:4px}
+.plate{justify-self:start;display:inline-flex;align-items:center;gap:10px;height:34px;padding:0 14px 0 6px;border-radius:999px;font:600 13px var(--f-sans);letter-spacing:-.005em;color:var(--ink)}
+.plate i{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,#FF8A5B,#E8512A);color:#fff;font:700 11px var(--f-round);font-style:normal}
+.topright{justify-self:end;display:flex;gap:8px;align-items:center}
+.gear{width:38px;height:38px;border-radius:50%;border:0;display:grid;place-items:center;color:var(--ink);transition:transform .6s var(--spring)}
+.gear svg{width:19px;height:19px}
+.gear:hover{transform:rotate(60deg)}
+.gear:active{transform:rotate(60deg) scale(.92)}
+.edition{display:inline-flex;align-items:center;height:34px;padding:0 14px;border-radius:999px;font:500 12px var(--f-mono);color:var(--ink-2)}
+.lock{grid-column:1/-1;text-align:center;padding:clamp(14px,4vw,40px) 0 clamp(6px,2vw,18px);text-shadow:0 1px 18px rgba(0,0,0,.28)}
+.dateline{margin:0;font:600 clamp(17px,2vw,22px)/1.2 var(--f-round);letter-spacing:.005em;opacity:.95}
+.dateline em{font-style:normal;opacity:.8;font-weight:500}
+.clock{font:700 clamp(96px,17vw,210px)/.92 var(--f-round);letter-spacing:-.045em;font-variant-numeric:tabular-nums;margin-top:2px;
+  color:#fff;text-shadow:0 1px 0 rgba(255,255,255,.4),0 6px 40px rgba(0,0,0,.22)}
+.greet{margin-top:10px;font:500 16px var(--f-sans);opacity:.92}
+.yearline{font:500 12px var(--f-mono);opacity:.75;margin-top:4px}
+.dayrail{grid-column:1/-1;justify-self:center;width:min(360px,70%);height:5px;border-radius:999px;overflow:hidden;background:rgba(255,255,255,.28);box-shadow:inset 0 1px 1px rgba(0,0,0,.08)}
+.dayrail i{display:block;height:100%;width:0;border-radius:999px;background:#fff;transition:width 1s var(--spring)}
+.banner{padding:12px 16px;border-radius:18px;font-size:13px;color:var(--ink-2)}
+.banner b{color:var(--ink);font-weight:600}
+
+/* ---------- grid ---------- */
+.grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:20px}
+.s7{grid-column:span 7}.s5{grid-column:span 5}.s4{grid-column:span 4}
+@media (max-width:1040px){.s7,.s5{grid-column:1/-1}.s4{grid-column:span 6}.s4:last-child{grid-column:1/-1}}
+@media (max-width:680px){.s4,.s4:last-child{grid-column:1/-1}.grid{gap:14px}}
+.card{padding:20px;display:flex;flex-direction:column;gap:14px;min-width:0;animation:rise .8s var(--spring) both;animation-delay:calc(var(--i,0)*60ms)}
+@keyframes rise{from{transform:translateY(14px) scale(.985)}to{transform:none}}
+@media (prefers-reduced-motion:reduce){*,.wall::before,.wall::after{animation:none!important;transition:none!important}}
+.head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.card h2{margin:0;display:flex;align-items:center;gap:8px;font:600 15px/1.2 var(--f-sans);letter-spacing:-.01em;color:var(--ink)}
+.card h2 svg{width:17px;height:17px;color:var(--tint)}
+.meta{font:500 12px var(--f-sans);color:var(--ink-3)}
+.eyebrow{font:600 12px/1 var(--f-sans);color:var(--ink-3);display:flex;align-items:center;gap:8px}
+.eyebrow b{color:var(--tint);font-weight:600}
+.empty{border-radius:var(--r-in);background:var(--hair);padding:14px 16px;color:var(--ink-2);font-size:14px;display:grid;gap:8px}
+.empty strong{color:var(--ink);font-weight:600}
+
+/* ---------- controls: capsules ---------- */
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;padding:0 18px;border-radius:999px;border:0;background:var(--glass-2);color:var(--ink);font:600 14px var(--f-sans);
+  box-shadow:inset 0 1px 0 var(--glass-edge),0 1px 2px rgba(0,0,0,.06);transition:transform .35s var(--spring),background .2s}
+.btn:hover{background:var(--glass-edge)}
+.btn:active{transform:scale(.96)}
+.btn.primary{background:var(--tint);color:var(--tint-ink);box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 6px 18px -6px var(--tint)}
+.btn.primary:hover{filter:brightness(1.07)}
+.btn .dot{display:inline-grid;place-items:center}
+.btn .dot svg{width:15px;height:15px}
+.btn.plain .dot{display:none}
+.btn[disabled]{opacity:.5;cursor:default}
+select.sel{height:40px;border-radius:999px;border:0;background:var(--glass-2);box-shadow:inset 0 1px 0 var(--glass-edge);padding:0 14px;max-width:230px;font:500 13px var(--f-sans)}
+textarea.field,input.field{width:100%;box-sizing:border-box;border-radius:var(--r-in);border:0;background:var(--hair);padding:12px 14px;resize:vertical;line-height:1.45;
+  box-shadow:inset 0 1px 2px rgba(0,0,0,.06);transition:background .2s,box-shadow .2s}
+textarea.field::placeholder,input.field::placeholder{color:var(--ink-3)}
+textarea.field:focus,input.field:focus{outline:none;background:var(--glass-2);box-shadow:0 0 0 3px var(--tint-soft),inset 0 1px 0 var(--glass-edge)}
+.hint{font-size:12px;color:var(--ink-3);display:flex;gap:6px;align-items:center}
+.hint svg{width:13px;height:13px}
+kbd{font:500 11px var(--f-mono);background:var(--hair);border-radius:6px;padding:2px 6px;color:var(--ink-2)}
+.tabs{display:flex;gap:2px;background:var(--hair);border-radius:999px;padding:3px}
+.tabs button{border:0;background:transparent;color:var(--ink-2);height:28px;padding:0 14px;border-radius:999px;font:600 12px var(--f-sans);transition:all .3s var(--spring)}
+.tabs button[aria-selected="true"]{background:var(--glass-edge);color:var(--ink);box-shadow:0 2px 8px rgba(0,0,0,.1)}
+.ib{width:32px;height:32px;border-radius:50%;border:0;background:transparent;color:var(--ink-3);display:grid;place-items:center;transition:all .25s var(--spring)}
+.ib:hover{color:var(--ink);background:var(--hair)}
+.ib[aria-pressed="true"]{color:var(--warn)}
+.ib svg{width:16px;height:16px}
+.ib.confirm{width:auto;padding:0 12px;border-radius:999px;background:var(--danger);color:#fff;font:600 12px var(--f-sans)}
+
+/* ---------- brief ---------- */
+.brief{padding:26px 28px}
+.brief-text{font:500 clamp(20px,1.9vw,25px)/1.38 var(--f-sans);letter-spacing:-.02em;color:var(--ink);max-width:60ch;margin:0;white-space:pre-line;text-wrap:pretty}
+
+/* ---------- weather widget (tinted like Apple Weather) ---------- */
+.wx{color:#fff;--wa:#3A8DDE;--wb:#79BFF2}
+.wx.k-rain,.wx.k-storm{--wa:#4B5D78;--wb:#7F93AE}
+.wx.k-cloud,.wx.k-fog{--wa:#6C7E93;--wb:#9DB0C3}
+.wx.k-part{--wa:#3F84D1;--wb:#8FB7DA}
+.wx.k-snow{--wa:#7E93B4;--wb:#C9D6E8}
+.wx.night{--wa:#1B2447;--wb:#3B4A7A}
+.wx{background:linear-gradient(170deg,color-mix(in srgb,var(--wa) 78%,transparent),color-mix(in srgb,var(--wb) 62%,transparent))}
+.wx h2,.wx .meta{color:rgba(255,255,255,.88)}.wx h2 svg{color:#fff}
+.wx .empty{background:rgba(255,255,255,.14);color:rgba(255,255,255,.9)}.wx .empty strong{color:#fff}
+.wx-now{display:grid;grid-template-columns:auto 1fr;gap:4px 16px;align-items:center}
+.wx-temp{font:300 78px/.9 var(--f-round);letter-spacing:-.05em}
+.wx-temp sup{font-size:.34em;vertical-align:top;margin-left:2px;opacity:.8;font-weight:400}
+.wx-icon{width:40px;height:40px}
+.wx-cond{font:600 17px var(--f-sans)}
+.wx-sub{font:500 13px var(--f-sans);opacity:.85;display:flex;gap:12px;flex-wrap:wrap}
+.days{display:grid;border-radius:var(--r-in);background:rgba(255,255,255,.12);padding:4px 14px}
+.day{display:grid;grid-template-columns:48px 22px 30px 1fr 30px 38px;align-items:center;gap:10px;padding:8px 0;font:500 14px var(--f-sans)}
+.day+.day{border-top:1px solid rgba(255,255,255,.14)}
+.day svg{width:20px;height:20px}
+.day .d{font-weight:600}
+.day .lo{opacity:.62;text-align:right}.day .hi{text-align:left}
+.range{position:relative;height:5px;border-radius:999px;background:rgba(0,0,0,.18)}
+.range i{position:absolute;top:0;bottom:0;border-radius:999px;background:linear-gradient(90deg,#8FE3C8,#FFD66B,#FF9F5A)}
+.rain{font:600 11px var(--f-sans);color:#BFE6FF;text-align:right}
+.sun{display:flex;gap:18px;font:500 13px var(--f-sans);opacity:.9}
+.sun b{font-weight:600}
+
+/* ---------- agenda ---------- */
+.agenda{display:grid;gap:14px}
+.aday h3{margin:0 0 6px;font:600 12px/1 var(--f-sans);color:var(--ink-3);display:flex;gap:6px;align-items:center}
+.aday h3 .today{color:var(--danger)}
+.ev{display:grid;grid-template-columns:4px 58px 1fr auto;gap:12px;padding:10px 12px 10px 0;border-radius:14px;align-items:start;background:var(--hair)}
+.ev+.ev{margin-top:6px}
+.ev::before{content:"";align-self:stretch;border-radius:999px;background:var(--tint)}
+.ev .t{font:600 13px var(--f-sans);color:var(--ink-2);font-variant-numeric:tabular-nums}
+.ev .title{font-weight:600;overflow-wrap:anywhere}
+.ev .where{font-size:13px;color:var(--ink-2);overflow-wrap:anywhere}
+.pill{font:600 11px/1 var(--f-sans);padding:6px 9px;border-radius:999px;white-space:nowrap}
+.pill.now{background:var(--danger);color:#fff}
+.pill.next{background:var(--tint-soft);color:var(--tint)}
+.pill.past{color:var(--ink-3);background:var(--hair)}
+.ev.done{opacity:.55}.ev.done::before{background:var(--ink-3)}
+
+/* ---------- notebook ---------- */
+.composer{display:grid;gap:10px}
+.notes{display:grid;gap:8px;max-height:440px;overflow:auto;margin-right:-6px;padding-right:6px}
+.note{display:grid;grid-template-columns:1fr auto;gap:4px 10px;padding:12px 8px 12px 14px;border-radius:var(--r-in);background:var(--hair)}
+.note.pinned{background:color-mix(in srgb,var(--warn) 14%,transparent)}
+.note p{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}
+.note .when{font:500 12px var(--f-sans);color:var(--ink-3);grid-column:1}
+.acts{display:flex;gap:0;grid-row:1/3;grid-column:2;align-self:start}
+
+/* ---------- desks ---------- */
+.pri{display:grid;gap:8px}
+.pri label{display:grid;grid-template-columns:24px 1fr;align-items:center;gap:10px}
+.pri .n{display:none}
+.pri input[type=checkbox]{appearance:none;width:24px;height:24px;border-radius:50%;border:1.8px solid var(--ink-3);display:grid;place-items:center;margin:0;cursor:pointer;transition:all .3s var(--spring)}
+.pri input[type=checkbox]:checked{background:var(--good);border-color:var(--good);transform:scale(1.05)}
+.pri input[type=checkbox]:checked::after{content:"";width:10px;height:5px;border:2.2px solid #fff;border-top:0;border-right:0;transform:rotate(-45deg) translate(1px,-1px)}
+.pri input.field{padding:10px 12px}
+.pri label.done input.field{color:var(--ink-3);text-decoration:line-through}
+.cd{display:grid;gap:8px}
+.cdi{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:8px 8px 8px 12px;border-radius:var(--r-in);background:var(--hair)}
+.cdi .big{font:600 30px/1 var(--f-round);letter-spacing:-.04em;color:var(--tint);min-width:2.2ch;text-align:right;font-variant-numeric:tabular-nums}
+.cdi .lbl{font-weight:600;overflow-wrap:anywhere}.cdi .lbl small{display:block;font:500 12px var(--f-sans);color:var(--ink-3)}
+.cd-add{display:grid;grid-template-columns:1fr 150px auto;gap:8px}
+@media (max-width:420px){.cd-add{grid-template-columns:1fr 1fr}.cd-add button{grid-column:1/-1}}
+.cd-add input{padding:10px 12px}
+
+.net{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.netrow{display:grid;justify-items:center;gap:6px;padding:12px 6px;border-radius:var(--r-in);background:var(--hair);text-decoration:none;color:var(--ink);font:600 13px var(--f-sans);transition:transform .35s var(--spring),background .2s}
+.netrow:hover{transform:translateY(-2px);background:var(--glass-2)}
+.netrow small{display:none}
+.glyph{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;color:#fff;font:700 15px var(--f-round);box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 4px 12px -4px rgba(0,0,0,.35)}
+.g-in{background:linear-gradient(160deg,#2A8CE8,#0A5EB0)}
+.g-ig{background:radial-gradient(circle at 30% 110%,#FFD66B 0%,#FF7A45 30%,#E1306C 60%,#833AB4 100%)}
+.g-x{background:linear-gradient(160deg,#2B2B2E,#000)}
+.go{display:none}
+.queue{display:grid;gap:8px}
+.qi{background:var(--hair);border-radius:var(--r-in);padding:10px 8px 12px 14px;display:grid;gap:6px}
+.qi p{margin:0;font-size:14px;white-space:pre-wrap;overflow-wrap:anywhere}
+.qi .qbar{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.tag{font:600 11px/1 var(--f-sans);padding:5px 9px;border-radius:999px;background:var(--tint-soft);color:var(--tint)}
+
+.answer{font-size:15px;line-height:1.55;white-space:pre-wrap;overflow-wrap:anywhere;padding:12px 14px;border-radius:18px 18px 18px 6px;background:var(--glass-2);box-shadow:inset 0 1px 0 var(--glass-edge)}
+.answer:empty{display:none}
+.answer.thinking{color:var(--ink-3)}
+.did{font:600 12px var(--f-sans);color:var(--good)}
+.status{font:500 12px var(--f-sans);color:var(--ink-2);min-height:1em}
+
+/* ---------- floating dock ---------- */
+.dock{position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:4;display:flex;gap:4px;padding:6px;border-radius:999px;
+  -webkit-backdrop-filter:blur(22px) saturate(200%);backdrop-filter:blur(22px) saturate(200%);backdrop-filter:url(#lens) blur(14px) saturate(200%)}
+.dock button{display:grid;justify-items:center;gap:2px;min-width:62px;height:54px;padding:6px 10px;border:0;border-radius:999px;background:transparent;color:var(--ink);font:600 10.5px var(--f-sans);transition:transform .4s var(--spring),background .2s}
+.dock button svg{width:21px;height:21px}
+.dock button:hover{background:var(--hair)}
+.dock button:active{transform:scale(.9)}
+.dock button[aria-pressed="true"]{color:var(--tint)}
+.dock .main{background:var(--tint);color:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,.4),0 6px 16px -6px var(--tint)}
+.dock .main:hover{background:var(--tint);filter:brightness(1.08)}
+@media (max-width:460px){.dock button{min-width:52px;padding:6px 6px}.dock button span{display:none}.dock button{height:48px}}
+
+/* ---------- settings sheet ---------- */
+dialog{border:0;padding:0;color:var(--ink);width:min(540px,calc(100vw - 32px));background:transparent;overflow:visible}
+dialog::backdrop{background:rgba(0,0,0,.28);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+.dlg{padding:24px;display:grid;gap:14px;background:var(--glass-2)}
+.dlg h2{font:700 22px var(--f-round);margin:0;letter-spacing:-.02em}
+.dlg label{display:grid;gap:6px;font:600 13px var(--f-sans);color:var(--ink-2)}
+.dlg label .field,.dlg label select{font:400 15px var(--f-sans);color:var(--ink)}
+.dlg label input.mono{font-family:var(--f-mono);font-size:13px}
+.dlg p{margin:0;font-size:13px;color:var(--ink-2)}
+.dlg ol{margin:0;padding-left:18px;font-size:13px;color:var(--ink-2);display:grid;gap:4px}
+footer{font:500 12px var(--f-sans);color:var(--hero-ink);opacity:.85;display:flex;justify-content:center;gap:6px 18px;flex-wrap:wrap;text-align:center;text-shadow:0 1px 12px rgba(0,0,0,.2)}
+.toast{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top,0px));transform:translate(-50%,-20px) scale(.9);opacity:0;padding:11px 18px;border-radius:999px;font:600 13px var(--f-sans);color:var(--ink);transition:all .5s var(--spring);z-index:6;pointer-events:none}
+.toast.on{opacity:1;transform:translate(-50%,0) scale(1)}
+.fieldwrap{position:relative}
+.fieldwrap .field{padding-right:52px}
+.mic{position:absolute;right:8px;bottom:10px;width:38px;height:38px;border-radius:50%;border:0;display:grid;place-items:center;background:var(--glass-2);color:var(--ink);box-shadow:inset 0 1px 0 var(--glass-edge),0 2px 8px rgba(0,0,0,.08);transition:transform .3s var(--spring),background .2s}
+.mic svg{width:18px;height:18px}
+.mic:active{transform:scale(.92)}
+.mic[aria-pressed="true"]{background:var(--danger);color:#fff;animation:pulse 1.2s ease-in-out infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--danger) 55%,transparent)}50%{box-shadow:0 0 0 10px transparent}}
+body.listening #dockTalk{color:var(--danger)}
+.login{justify-items:center;text-align:center;padding:30px 26px}
+.login .plate i{width:52px;height:52px;font-size:22px}
+.login .field{text-align:center}
+.login .btn{width:100%}
+#login::backdrop{background:rgba(0,0,0,.18);-webkit-backdrop-filter:blur(24px) saturate(160%);backdrop-filter:blur(24px) saturate(160%)}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <!-- lensing for the dock: bends what's behind its edges (Chromium only; others fall back to plain blur) -->
+  <filter id="lens" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+    <feTurbulence type="fractalNoise" baseFrequency="0.008 0.012" numOctaves="2" seed="7" result="n"/>
+    <feGaussianBlur in="n" stdDeviation="2" result="nb"/>
+    <feDisplacementMap in="SourceGraphic" in2="nb" scale="18" xChannelSelector="R" yChannelSelector="G" result="d"/>
+    <feGaussianBlur in="d" stdDeviation="6"/>
+  </filter>
+</svg>
+
+
+<div class="wall" aria-hidden="true"></div><div class="veil" aria-hidden="true"></div><div class="grain" aria-hidden="true"></div>
+<div class="wrap">
+  <header class="hero">
+    <div class="plate glass"><i>M</i>The Moorhouse Daily</div>
+    <div class="topright"><div class="edition glass" id="edition">Vol. — · No. —</div><button type="button" class="gear glass" id="settingsBtn" aria-label="Settings" title="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button></div>
+    <div class="lock">
+      <h1 class="dateline" id="dateline">Today</h1>
+      <div class="clock" id="clock">--:--</div>
+      <div class="greet" id="greet">Good day, James.</div>
+      <div class="yearline" id="yearline"></div>
+    </div>
+    <div class="dayrail" title="How much of today has gone"><i id="dayrail"></i></div>
+  </header>
+
+  <div class="banner glass" id="sampleBanner" hidden><b>Sample edition.</b> The server can't be reached right now, so this shows example content. Your own edition will be back once it reconnects.</div>
+
+  <main class="grid">
+    <!-- Brief -->
+    <section class="glass card brief s7" aria-label="Morning brief">
+      <div class="eyebrow"><b>Morning brief</b><span id="briefWhen">Waiting for the first run</span></div>
+            <p class="status" id="briefErr" hidden></p>
+      <p class="brief-text" id="briefText">Your brief lands here each weekday morning: what's in the diary, what the weather means for the day, and the one thing worth getting done first.</p>
+      <div class="row">
+        <button class="btn primary" id="readBrief"><span>Read it to me</span><span class="dot"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></span></button>
+        <button class="btn plain" id="stopSpeech" hidden>Stop</button>
+        <button class="btn plain" id="refreshBrief" title="Rewrite the brief with the latest diary and weather">Refresh</button>
+      </div>
+    </section>
+
+    <!-- Weather -->
+    <section class="glass card wx s5" id="wxCard" style="--i:1" aria-labelledby="wxH">
+      <div class="head"><h2 id="wxH"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.4 1.4M17.6 17.6 19 19M5 19l1.4-1.4M17.6 6.4 19 5"/></svg>Weather</h2><span class="meta" id="wxPlace">—</span></div>
+      <div id="wxBody"></div>
+    </section>
+
+    <!-- Agenda -->
+    <section class="glass card s5" style="--i:2" aria-labelledby="agH">
+      <div class="head"><h2 id="agH"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Diary</h2><span class="meta" id="agMeta">Next 7 days</span></div>
+      <div id="agBody" class="agenda"></div>
+    </section>
+
+    <!-- Notebook -->
+    <section class="glass card s7" style="--i:3" aria-labelledby="ntH">
+      <div class="head"><h2 id="ntH"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h11l3 3v13H5z"/><path d="M9 10h6M9 14h6"/></svg>Notebook</h2>
+        <div class="tabs" role="tablist">
+          <button role="tab" id="tabAll" aria-selected="true">All</button>
+          <button role="tab" id="tabPin" aria-selected="false">Pinned</button>
+        </div>
+      </div>
+      <form class="composer" id="noteForm">
+        <div class="fieldwrap"><textarea class="field" id="noteInput" rows="3" placeholder="Jot it down, or tap the mic and say it."></textarea><button type="button" class="mic" data-mic="#noteInput" aria-pressed="false" aria-label="Talk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button></div>
+        <div class="row" style="justify-content:space-between">
+          <span class="hint"><kbd>⌘</kbd><kbd>Enter</kbd> to save</span>
+          <button class="btn primary" type="submit"><span>Save note</span><span class="dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg></span></button>
+        </div>
+      </form>
+      <div class="notes" id="notes"></div>
+    </section>
+
+    <!-- Three things + countdowns -->
+    <section class="glass card s4" style="--i:4" aria-labelledby="priH">
+      <div class="head"><h2 id="priH"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.5 2.5L16 9.5"/></svg>Three things</h2><span class="meta" id="priMeta">0 of 3 done</span></div>
+      <div class="pri" id="pri"></div>
+      <div class="eyebrow" style="margin-top:6px">Counting down</div>
+      <div class="cd" id="cd"></div>
+      <form class="cd-add" id="cdForm">
+        <input class="field" id="cdLabel" placeholder="What's coming" aria-label="Event name">
+        <input class="field mono" id="cdDate" type="date" aria-label="Date">
+        <button class="btn plain" type="submit">Add</button>
+      </form>
+    </section>
+
+    <!-- Social desk -->
+    <section class="glass card s4" style="--i:5" aria-labelledby="soH">
+      <div class="head"><h2 id="soH"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/></svg>Social desk</h2><span class="meta">Open, draft, queue</span></div>
+      <div class="net">
+        <a class="netrow" href="https://www.linkedin.com/feed/" target="_blank" rel="noopener"><span class="glyph g-in">in</span><span>LinkedIn<small>Feed and notifications</small></span><span class="go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M7 17 17 7M8 7h9v9"/></svg></span></a>
+        <a class="netrow" href="https://www.instagram.com/" target="_blank" rel="noopener"><span class="glyph g-ig">IG</span><span>Instagram<small>Feed and messages</small></span><span class="go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M7 17 17 7M8 7h9v9"/></svg></span></a>
+        <a class="netrow" href="https://x.com/home" target="_blank" rel="noopener"><span class="glyph g-x">X</span><span>X<small>Following timeline</small></span><span class="go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M7 17 17 7M8 7h9v9"/></svg></span></a>
+      </div>
+      <div class="eyebrow" style="margin-top:6px">Draft a post</div>
+      <form class="composer" id="draftForm">
+        <input class="field" id="draftTopic" placeholder="Topic, e.g. why exit planning starts 3 years out">
+        <div class="row">
+          <select class="sel" id="draftNet" aria-label="Platform"><option>LinkedIn</option><option>X</option><option>Instagram</option></select>
+          <button class="btn primary" type="submit" id="draftBtn"><span>Draft it</span><span class="dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20h4L19 9l-4-4L4 16v4z"/></svg></span></button>
+        </div>
+        <div class="status" id="draftStatus"></div>
+      </form>
+      <div class="queue" id="queue"></div>
+    </section>
+
+    <!-- Ask Claude -->
+    <section class="glass card s4" id="askCard" style="--i:6" aria-labelledby="askH">
+      <div class="head"><h2 id="askH"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2 5 5 2-5 2-2 5-2-5-5-2 5-2z"/></svg>Ask Claude</h2><span class="meta">Knows this page</span></div>
+      <div class="empty" id="askOff" hidden><strong>Claude isn't switched on yet.</strong>Add your Anthropic API key in Vercel (see the setup guide) and this box comes alive.</div>
+      <form class="composer" id="askForm">
+        <div class="fieldwrap"><textarea class="field" id="askInput" rows="3" placeholder="Try: what's my afternoon look like? · add a note to chase the valuation report · put the VAT return on my three things"></textarea><button type="button" class="mic" data-mic="#askInput" aria-pressed="false" aria-label="Talk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button></div>
+        <div class="row" style="justify-content:space-between">
+          <span class="hint">Tap the mic, ask out loud, Samantha answers</span>
+          <div class="row"><button class="btn plain" type="button" id="askStop" hidden>Stop</button>
+          <button class="btn primary" type="submit" id="askBtn"><span>Ask</span><span class="dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></button></div>
+        </div>
+      </form>
+      <div class="did" id="askDid"></div>
+      <div class="answer" id="askOut"></div>
+    </section>
+  </main>
+
+  <footer><span id="footLeft">Updated —</span><span>A fresh brief lands every weekday morning. Weather and diary stay current while the page is open. Notes sync everywhere.</span></footer>
+</div>
+
+<nav class="dock glass" aria-label="Quick actions">
+  <button type="button" id="dockNote"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>Note</span></button>
+  <button type="button" id="dockTalk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg><span>Talk</span></button>
+  <button type="button" class="main" id="dockBrief"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span>Brief</span></button>
+  <button type="button" id="speakBtn" aria-pressed="false" title="Speak Claude's replies aloud"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/><path d="M9 10.5h.01M12 10.5h.01M15 10.5h.01"/></svg><span>Replies</span></button>
+  <button type="button" id="soundBtn" aria-pressed="true" title="Interface sounds"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7"/></svg><span>Sound</span></button>
+</nav>
+
+<dialog id="settings">
+  <form class="dlg glass" method="dialog" id="settingsForm">
+    <div class="head"><h2>Settings</h2><button type="button" class="ib" id="closeSettings" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+    <label>Reading voice<span class="row" style="flex-wrap:nowrap"><select class="sel" id="voiceSel" style="flex:1;max-width:none"></select><button type="button" class="btn plain" id="voiceTest">Play</button></span></label>
+    <label>Weather location<input class="field" id="setPlace" placeholder="e.g. Manchester"></label>
+    <label>iCloud calendar link<input class="field mono" id="setCal" placeholder="webcal://p…-caldav.icloud.com/published/2/…"></label>
+    <ol>
+      <li>On your iPhone open Calendar, tap Calendars, then the ⓘ beside your calendar.</li>
+      <li>Turn on Public Calendar and tap Share Link, then Copy.</li>
+      <li>Paste it above and save. Your diary loads straight away and refreshes through the day.</li>
+    </ol>
+    <p>The link is read-only, but anyone who has it can see that calendar. It's stored on your own server, behind your password.</p>
+    <h3 style="margin:6px 0 0;font:600 15px var(--f-sans)">Adding a voice like Samantha</h3>
+    <ol>
+      <li><b>Mac:</b> System Settings › Accessibility › Spoken Content › System voice › Manage Voices, then tick Samantha under English (US).</li>
+      <li><b>iPhone:</b> Settings › Accessibility › Spoken Content › Voices › English, then download Samantha.</li>
+      <li>Reload this page and choose her under Reading voice at the top of this menu.</li>
+    </ol>
+    <div class="row" style="justify-content:space-between">
+      <button type="button" class="btn plain" id="signOut">Sign out</button>
+      <span class="row"><button class="btn plain" value="cancel" formnovalidate>Close</button>
+      <button class="btn primary" id="saveSettings" value="save"><span>Save</span><span class="dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 13l4 4L19 7"/></svg></span></button></span>
+    </div>
+  </form>
+</dialog>
+
+<div class="toast glass" id="toast" role="status"></div>
+<dialog id="login" aria-labelledby="loginH">
+  <form class="dlg glass login" id="loginForm">
+    <div class="plate" style="padding:0;height:auto"><i>M</i></div>
+    <h2 id="loginH">The Moorhouse Daily</h2>
+    <p>Enter your password to open today's edition.</p>
+    <input class="field" id="pw" type="password" autocomplete="current-password" placeholder="Password" required aria-label="Password">
+    <p class="status" id="loginErr" role="alert" style="color:var(--danger)"></p>
+    <button class="btn primary" id="loginBtn" type="submit"><span>Open</span><span class="dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></button>
+  </form>
+</dialog>
+
+
+<script>
+(() => {
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const store = { get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch{return d}}, set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}} };
+const TZ = "Europe/London";
+const state={today:null,desk:{priorities:[],countdowns:[],queue:[]},notes:[],settings:{},filter:"all",ready:false,sample:false};
+
+/* ---------------- sound (Web Audio, starts on first interaction) ---------------- */
+let soundOn = store.get("md.sound", true), actx = null;
+function tone(kind){
+  if(!soundOn) return;
+  try{
+    actx = actx || new (window.AudioContext||window.webkitAudioContext)();
+    const notes = {save:[660,990], done:[523,784,1046], del:[392,262], open:[880]}[kind] || [700];
+    notes.forEach((f,i)=>{
+      const o=actx.createOscillator(), g=actx.createGain(), t=actx.currentTime+i*.07;
+      o.type="sine"; o.frequency.value=f;
+      g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(.06,t+.01); g.gain.exponentialRampToValueAtTime(.0001,t+.35);
+      o.connect(g).connect(actx.destination); o.start(t); o.stop(t+.4);
+    });
+  }catch{}
+}
+const soundBtn=$("#soundBtn");
+const paintSound=()=>soundBtn.setAttribute("aria-pressed",soundOn);
+soundBtn.onclick=()=>{soundOn=!soundOn;store.set("md.sound",soundOn);paintSound();tone("open")};paintSound();
+
+/* ---------------- speech out ---------------- */
+const synth = window.speechSynthesis;
+let speakReplies = store.get("md.speak", false);
+const speakBtn=$("#speakBtn"), voiceSel=$("#voiceSel");
+const paintSpeak=()=>speakBtn.setAttribute("aria-pressed",speakReplies);
+speakBtn.onclick=()=>{speakReplies=!speakReplies;store.set("md.speak",speakReplies);paintSpeak();toast(speakReplies?"Claude's replies will be read aloud":"Replies stay silent")};paintSpeak();
+/* Voices: one entry per voice (installed copy preferred), keyed by voiceURI so
+   "Samantha" and "Samantha (Enhanced)" can't be confused. Favourites sit on top. */
+const FAVS=["Samantha","Daniel"];
+const prefVoice=()=>state.settings?.voice||store.get("md.voiceName","")||"Samantha";
+let voiceMap=new Map();
+const vLabel=v=>{const q=(v.name.match(/\((Enhanced|Premium)\)/i)||[])[1];return v.name.replace(/\s*\(.*\)/,"")+(q?" "+q:"")+" · "+v.lang.replace("_","-")};
+function loadVoices(){
+  if(!synth){voiceSel.hidden=true;$("#readBrief").hidden=true;speakBtn.hidden=true;return}
+  const all=synth.getVoices().filter(v=>/^en/i.test(v.lang));
+  const byName=new Map();
+  all.forEach(v=>{const k=v.name+"|"+v.lang, cur=byName.get(k);if(!cur||(!cur.localService&&v.localService))byName.set(k,v)});
+  const vs=[...byName.values()]; voiceMap=new Map(vs.map(v=>[v.voiceURI,v]));
+  const base=v=>v.name.replace(/\s*\(.*\)/,"");
+  const fav=vs.filter(v=>FAVS.includes(base(v))).sort((a,b)=>FAVS.indexOf(base(a))-FAVS.indexOf(base(b))||(b.localService-a.localService));
+  const rest=vs.filter(v=>!fav.includes(v)).sort((a,b)=>(/GB/i.test(b.lang)-/GB/i.test(a.lang))||a.name.localeCompare(b.name));
+  // the chosen voice is saved by name (synced across devices); pick this device's installed copy of it
+  const want=prefVoice();
+  const cands=vs.filter(v=>base(v)===want).sort((a,b)=>(b.localService-a.localService)||(/GB/i.test(b.lang)-/GB/i.test(a.lang)));
+  let saved=cands[0]?.voiceURI||store.get("md.voice","");
+  if(saved&&!voiceMap.has(saved)){const m=vs.find(v=>v.name===saved);saved=m?m.voiceURI:""}
+  if(!saved&&fav[0])saved=fav[0].voiceURI;
+  const opt=v=>`<option value="${esc(v.voiceURI)}"${v.voiceURI===saved?" selected":""}>${esc(vLabel(v))}</option>`;
+  voiceSel.innerHTML=(fav.length?`<optgroup label="Favourites">${fav.map(opt).join("")}</optgroup>`:"")+`<optgroup label="All English voices">${rest.map(opt).join("")}</optgroup>`;
+  voiceSel.hidden=!vs.length;
+}
+if(synth){loadVoices();synth.onvoiceschanged=loadVoices;setTimeout(loadVoices,800)}else loadVoices();
+voiceSel.onchange=()=>{store.set("md.voice",voiceSel.value);const v=voiceMap.get(voiceSel.value);
+  if(v){const nm=v.name.replace(/\s*\(.*\)/,"");store.set("md.voiceName",nm);saveVoice(nm)}speak("Hello James, this is "+(v?v.name.replace(/\s*\(.*\)/,""):"your new voice")+".")};
+function speak(text,fallback){
+  if(!synth||!text) return;
+  synth.cancel();
+  const clean=text.replace(/[#*_`>]/g,"").replace(/\s+/g," ").trim();
+  const chunks=clean.match(/[^.!?]+[.!?]*/g)||[clean];
+  const v=fallback?null:(voiceMap.get(voiceSel.value)||synth.getVoices().find(x=>x.voiceURI===voiceSel.value));
+  let started=false;
+  chunks.forEach((c,i)=>{const u=new SpeechSynthesisUtterance(c.trim());u.rate=1;
+    if(v){u.voice=v;u.lang=v.lang}else u.lang="en-GB";
+    if(i===0){u.onstart=()=>{started=true;$("#stopSpeech").hidden=false};
+      u.onerror=e=>{if(!started&&v&&e.error!=="interrupted"&&e.error!=="canceled")voiceFailed(v,text)}}
+    if(i===chunks.length-1){const done=()=>{$("#stopSpeech").hidden=true};u.onend=done;if(i>0)u.onerror=done}
+    synth.speak(u)});
+  // some browsers fail silently when a voice isn't on this device: no start, no error
+  if(v) setTimeout(()=>{if(!started&&!synth.speaking)voiceFailed(v,text)},1800);
+}
+function voiceFailed(v,text){
+  if(voiceFailed.busy)return; voiceFailed.busy=true; setTimeout(()=>voiceFailed.busy=false,3000);
+  const n=v.name.replace(/\s*\(.*\)/,"");
+  toast(`${n} isn't installed on this device yet, so I used the standard voice. Settings shows how to add ${n}.`);
+  speak(text,true);
+}
+$("#stopSpeech").onclick=()=>{synth?.cancel();$("#stopSpeech").hidden=true};
+$("#readBrief").onclick=()=>{
+  const w=state.today?.weather;
+  let t=$("#briefText").textContent;
+  if(w?.now!=null) t=`It's ${Math.round(w.now)} degrees in ${w.place||"town"}, ${w.cond||""}. `+t;
+  speak(t);
+};
+
+/* ---------------- toast ---------------- */
+let tt; function toast(m,ms){const e=$("#toast");e.textContent=m;e.classList.add("on");clearTimeout(tt);tt=setTimeout(()=>e.classList.remove("on"),ms||Math.max(2200,m.length*55))}
+
+/* ---------------- clock + masthead ---------------- */
+const fmt = (o,d=new Date()) => new Intl.DateTimeFormat("en-GB",{timeZone:TZ,...o}).format(d);
+function londonParts(d=new Date()){const p=Object.fromEntries(new Intl.DateTimeFormat("en-GB",{timeZone:TZ,year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",second:"2-digit",hourCycle:"h23"}).formatToParts(d).map(x=>[x.type,x.value]));return p}
+function todayISO(){const p=londonParts();return `${p.year}-${p.month}-${p.day}`}
+function tick(){
+  const p=londonParts(), now=new Date();
+  $("#clock").textContent=`${p.hour}:${p.minute}`;
+  if(p.second==="00"||!tick.did) wallpaper(+p.hour);
+  const secs=(+p.hour)*3600+(+p.minute)*60+(+p.second);
+  $("#dayrail").style.width=(secs/864).toFixed(2)+"%";
+  if(p.second==="00"||!tick.did){ masthead(); if(state.today) renderAgenda(); tick.did=true }
+}
+function masthead(){
+  const p=londonParts(), y=+p.year;
+  const wd=fmt({weekday:"long"}), dm=fmt({day:"numeric",month:"long"});
+  $("#dateline").innerHTML=`${esc(wd)}, <em>${esc(dm)}</em>`;
+  const start=Date.UTC(y,0,1), cur=Date.UTC(y,+p.month-1,+p.day);
+  const doy=Math.round((cur-start)/864e5)+1, len=(y%4===0&&(y%100!==0||y%400===0))?366:365;
+  $("#edition").textContent=`Vol. ${String(y).slice(2)} · No. ${doy}`;
+  $("#yearline").textContent=`${Math.round(doy/len*100)}% of ${y} gone · week ${isoWeek(y,+p.month,+p.day)}`;
+  const h=+p.hour;
+  $("#greet").textContent=(h<12?"Good morning":h<17?"Good afternoon":"Good evening")+", James.";
+}
+const WALL={dawn:["#FFB38A","#FF7AA2","#C59BFF","#FFD1A8","#FFE08A"],day:["#3FD3B6","#FF7F6E","#9C86FF","#35B6EA","#FFD45C"],dusk:["#FF9E5E","#E4508F","#8A5CF0","#FF6F61","#FFC46B"],night:["#7B4BD8","#C2418F","#3B2A8C","#2FA3A0","#E0795A"]};
+function wallpaper(h){const k=h>=5&&h<9?"dawn":h>=9&&h<17?"day":h>=17&&h<21?"dusk":"night";if(wallpaper.k===k)return;wallpaper.k=k;
+  WALL[k].forEach((c,i)=>document.documentElement.style.setProperty("--w"+(i+1),c));document.body.style.background=WALL[k][1];document.documentElement.style.background=WALL[k][1];
+  const wx=document.getElementById("wxCard");if(wx)wx.classList.toggle("night",k==="night")}
+function isoWeek(y,m,d){const t=new Date(Date.UTC(y,m-1,d));const dn=(t.getUTCDay()+6)%7;t.setUTCDate(t.getUTCDate()-dn+3);const f=new Date(Date.UTC(t.getUTCFullYear(),0,4));return 1+Math.round(((t-f)/864e5-3+((f.getUTCDay()+6)%7))/7)}
+
+/* ---------------- weather icons ---------------- */
+function wxKind(c=""){c=c.toLowerCase();
+  if(/thunder/.test(c))return"storm"; if(/snow|sleet/.test(c))return"snow";
+  if(/rain|shower|drizzle/.test(c))return"rain"; if(/fog|mist|haz/.test(c))return"fog";
+  if(/interval|partly|some sun|sunny spells/.test(c))return"part"; if(/sun|clear/.test(c))return"sun";
+  return"cloud"}
+function wxIcon(c){const k=wxKind(c),s='fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"';
+  const cloud='<path d="M7 18h10a4 4 0 0 0 .6-8A5.5 5.5 0 0 0 7 11a3.5 3.5 0 0 0 0 7z"/>';
+  const sun='<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>';
+  const m={sun,cloud,
+    part:'<path d="M8.5 5.5V4M4 10H2.5M5.3 6.8 4.2 5.7M12.3 6.8l1-1.1"/><path d="M5.6 11.5a3.5 3.5 0 0 1 6.4-2.8"/><path d="M9 20h8a3.5 3.5 0 0 0 .5-7 4.8 4.8 0 0 0-9.2 1A3 3 0 0 0 9 20z"/>',
+    rain:'<path d="M7 15h10a4 4 0 0 0 .6-8A5.5 5.5 0 0 0 7 8a3.5 3.5 0 0 0 0 7z"/><path d="M8 18l-1 3M12 18l-1 3M16 18l-1 3"/>',
+    storm:'<path d="M7 14h10a4 4 0 0 0 .6-8A5.5 5.5 0 0 0 7 7a3.5 3.5 0 0 0 0 7z"/><path d="M12 14l-2 4h3l-2 4"/>',
+    snow:cloud+'<path d="M9 21h.01M12 21h.01M15 21h.01"/>',
+    fog:'<path d="M4 9h16M3 13h18M5 17h14"/>'};
+  return `<svg viewBox="0 0 24 24" ${s} aria-hidden="true">${m[k]}</svg>`}
+
+/* ---------------- state + rendering ---------------- */
+
+function renderBrief(){
+  const t=state.today;
+  if(t?.brief){$("#briefText").textContent=t.brief}
+  $("#briefWhen").textContent=t?.updatedAt?("Updated "+relTime(t.updatedAt)):"Waiting for the first run";
+  $("#footLeft").textContent=t?.updatedAt?("Edition set "+fmt({weekday:"short",hour:"2-digit",minute:"2-digit"},new Date(t.updatedAt))):"Edition not yet set";
+}
+function relTime(iso){const d=new Date(iso),m=Math.round((Date.now()-d)/6e4);
+  if(m<1)return"just now";if(m<60)return m+" min ago";
+  const same=fmt({year:"numeric",month:"2-digit",day:"2-digit"},d)===fmt({year:"numeric",month:"2-digit",day:"2-digit"});
+  return same?"at "+fmt({hour:"2-digit",minute:"2-digit"},d):fmt({weekday:"short",day:"numeric",month:"short"},d)+" "+fmt({hour:"2-digit",minute:"2-digit"},d)}
+
+function renderWeather(){
+  const w=state.today?.weather, b=$("#wxBody");
+  if(!w){$("#wxPlace").textContent=state.settings.place||"—";
+    b.innerHTML=`<div class="empty"><strong>No forecast yet.</strong>It loads with the next refresh. Set your town in Settings if it isn't Manchester.</div>`;return}
+  $("#wxPlace").textContent=(w.place||"")+(w.source?" · "+w.source:"");
+  const card=$("#wxCard");card.className=card.className.replace(/\bk-\w+/g,"").trim()+" k-"+wxKind(w.cond);
+  const days=(w.days||[]).slice(0,6);
+  const lo=Math.min(...days.map(d=>d.lo)), hi=Math.max(...days.map(d=>d.hi)), span=Math.max(1,hi-lo);
+  b.innerHTML=`
+   <div class="wx-now">
+     <div class="wx-temp">${w.now!=null?Math.round(w.now):"–"}<sup>°C</sup></div>
+     <div><div class="wx-icon">${wxIcon(w.cond)}</div><div class="wx-cond">${esc(w.cond||"")}</div></div>
+     <div class="wx-sub" style="grid-column:1/-1">
+       <span>High ${esc(w.hi)}° · Low ${esc(w.lo)}°</span>${w.rain!=null?`<span>Rain ${esc(w.rain)}%</span>`:""}${w.wind?`<span>Wind ${esc(w.wind)}</span>`:""}
+     </div>
+   </div>
+   <div class="days">${days.map(d=>{
+     const l=((d.lo-lo)/span*100).toFixed(1), r=((d.hi-lo)/span*100).toFixed(1);
+     const lab=d.date===todayISO()?"Today":new Date(d.date+"T12:00:00Z").toLocaleDateString("en-GB",{weekday:"short",timeZone:"UTC"});
+     return `<div class="day"><span class="d">${esc(lab)}</span>${wxIcon(d.cond)}<span class="lo mono">${esc(d.lo)}°</span><span class="range" title="${esc(d.cond)}"><i style="left:${l}%;right:${(100-r).toFixed(1)}%"></i></span><span class="hi mono">${esc(d.hi)}°</span><span class="rain">${d.rain!=null?esc(d.rain)+"%":""}</span></div>`}).join("")}
+   </div>
+   ${w.sunrise?`<div class="sun"><span>Sunrise <b>${esc(w.sunrise)}</b></span><span>Sunset <b>${esc(w.sunset)}</b></span></div>`:""}`;
+}
+
+function renderAgenda(){
+  const b=$("#agBody"), ev=(state.today?.agenda||[]).slice();
+  if(!ev.length){
+    b.innerHTML=state.settings.icalUrl
+      ?`<div class="empty"><strong>Nothing in the diary.</strong>Your calendar is connected and there's nothing booked in the next seven days.</div>`
+      :`<div class="empty"><strong>Connect your iCloud calendar.</strong>Paste your calendar's share link in Settings and your next seven days appear here.<div><button class="btn plain" type="button" onclick="document.getElementById('settingsBtn').click()">Open Settings</button></div></div>`;
+    return}
+  const today=todayISO(), p=londonParts(), nowMin=(+p.hour)*60+(+p.minute);
+  const byDay={}; ev.sort((a,b)=>(a.date+(a.allDay?"00:00":a.start||"")).localeCompare(b.date+(b.allDay?"00:00":b.start||"")));
+  ev.filter(e=>e.date>=today).forEach(e=>(byDay[e.date]=byDay[e.date]||[]).push(e));
+  const toMin=t=>{if(!t)return null;const[h,m]=t.split(":");return +h*60+ +m};
+  let nextMarked=false;
+  const days=Object.keys(byDay).slice(0,7);
+  if(!days.length){b.innerHTML=`<div class="empty"><strong>A clear week.</strong>Nothing booked in the next seven days.</div>`;return}
+  b.innerHTML=days.map(d=>{
+    const isT=d===today, lab=new Date(d+"T12:00:00Z").toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"short",timeZone:"UTC"});
+    return `<div class="aday"><h3>${isT?'<span class="today">Today</span> · ':""}${esc(lab)}</h3>${byDay[d].map(e=>{
+      let pill="",cls="";
+      if(isT&&!e.allDay){const s=toMin(e.start),en=toMin(e.end)??s+60;
+        if(nowMin>=en){pill='<span class="pill past">Done</span>';cls="done"}
+        else if(nowMin>=s){pill='<span class="pill now">Now</span>'}
+        else if(!nextMarked){nextMarked=true;const m=s-nowMin;pill=`<span class="pill next">In ${m<60?m+"m":Math.floor(m/60)+"h "+(m%60)+"m"}</span>`}}
+      return `<div class="ev ${cls}"><span class="t">${e.allDay?"All day":esc(e.start)}${!e.allDay&&e.end?`<br><span style="color:var(--faint)">${esc(e.end)}</span>`:""}</span><div><div class="title">${esc(e.title)}</div>${e.where?`<div class="where">${esc(e.where)}</div>`:""}</div>${pill}</div>`}).join("")}</div>`}).join("");
+}
+
+function renderNotes(){
+  const b=$("#notes"); let list=state.notes.slice().sort((a,b)=>(b.pinned-a.pinned)||(b.created||"").localeCompare(a.created||""));
+  if(state.filter==="pin") list=list.filter(n=>n.pinned);
+  if(!list.length){b.innerHTML=`<div class="empty"><strong>${state.filter==="pin"?"Nothing pinned.":"No notes yet."}</strong>${state.filter==="pin"?"Pin a note to keep it at the top.":"Notes you save here appear on your phone and Mac straight away."}</div>`;return}
+  b.innerHTML=list.map(n=>`<div class="note ${n.pinned?"pinned":""}" data-id="${esc(n.id)}">
+    <p>${esc(n.text)}</p><span class="when">${n.created?esc(relTime(n.created)):""}${n.via?" · "+esc(n.via):""}</span>
+    <div class="acts">
+      <button class="ib" data-act="say" title="Read aloud" aria-label="Read aloud"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7"/></svg></button>
+      <button class="ib" data-act="pin" aria-pressed="${!!n.pinned}" title="${n.pinned?"Unpin":"Pin"}" aria-label="Pin"><svg viewBox="0 0 24 24" fill="${n.pinned?"currentColor":"none"}" stroke="currentColor" stroke-width="1.5"><path d="M9 3h6l-1 6 4 4H6l4-4-1-6zM12 13v8"/></svg></button>
+      <button class="ib" data-act="del" title="Delete" aria-label="Delete"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></button>
+    </div></div>`).join("");
+}
+
+function renderPri(){
+  const pr=[0,1,2].map(i=>state.desk.priorities?.[i]||{text:"",done:false});
+  const done=pr.filter(p=>p.done&&p.text).length;
+  $("#priMeta").textContent=`${done} of ${pr.filter(p=>p.text).length||3} done`;
+  const b=$("#pri"); const focused=document.activeElement?.id;
+  b.innerHTML=pr.map((p,i)=>`<label class="${p.done?"done":""}"><span class="n">${i+1}</span><input type="checkbox" id="pc${i}" ${p.done?"checked":""} aria-label="Done"><input class="field" id="pt${i}" value="${esc(p.text)}" placeholder="${["The one that moves the week","Then this","And if there's time"][i]}"></label>`).join("");
+  if(focused&&/^pt/.test(focused)){const el=$("#"+focused);el?.focus();const v=el?.value.length;el?.setSelectionRange(v,v)}
+}
+
+function renderCd(){
+  const b=$("#cd"), t=todayISO();
+  const list=(state.desk.countdowns||[]).filter(c=>c.date>=t).sort((a,b)=>a.date.localeCompare(b.date));
+  if(!list.length){b.innerHTML=`<div class="empty" style="margin-top:4px">Add a date you're working towards: a completion, a holiday, a deadline.</div>`;return}
+  b.innerHTML=list.map(c=>{const days=Math.round((Date.parse(c.date)-Date.parse(t))/864e5);
+    return `<div class="cdi"><span class="big">${days}</span><span class="lbl">${esc(c.label)}<small>${days===0?"Today":days===1?"day to go":"days to go"} · ${new Date(c.date+"T12:00:00Z").toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric",timeZone:"UTC"})}</small></span><button class="ib" data-cd="${esc(c.id)}" aria-label="Remove"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>`}).join("");
+}
+
+function renderQueue(){
+  const q=(state.desk.queue||[]).slice().reverse();
+  $("#queue").innerHTML=q.map(x=>`<div class="qi" data-q="${esc(x.id)}"><div class="qbar"><span class="tag">${esc(x.platform)}</span><span class="row" style="gap:2px">
+    <button class="ib" data-qa="copy" title="Copy" aria-label="Copy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg></button>
+    <button class="ib" data-qa="del" title="Remove" aria-label="Remove"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 6l12 12M18 6 6 18"/></svg></button></span></div><p>${esc(x.text)}</p></div>`).join("");
+}
+
+function renderAll(){renderBrief();renderWeather();renderAgenda();renderNotes();renderPri();renderCd();renderQueue()}
+
+/* ---------------- sample edition (no data store) ---------------- */
+function sampleEdition(){
+  state.sample=true; $("#sampleBanner").hidden=false;
+  const t=todayISO(), add=n=>{const d=new Date(t+"T12:00:00Z");d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10)};
+  state.today={updatedAt:new Date().toISOString(),
+    brief:"Example brief. Two meetings today, the first at ten. Dry until mid-afternoon, so walk to the second one. First job: send the heads of terms before lunch.",
+    weather:{place:"Example town",now:14,cond:"Sunny intervals",hi:18,lo:10,rain:20,sunrise:"07:09",sunset:"18:48",
+      days:[0,1,2,3,4,5].map(i=>({date:add(i),cond:["Sunny intervals","Light rain","Cloudy","Sunny","Heavy showers","Sunny intervals"][i],hi:[18,16,17,19,15,17][i],lo:[10,11,9,8,10,9][i],rain:[20,70,30,5,80,25][i]}))},
+    agenda:[{date:t,start:"10:00",end:"11:00",title:"Example: client valuation call",where:"Phone"},{date:t,start:"14:30",end:"15:30",title:"Example: site visit",where:"Example Road"},{date:add(1),allDay:true,title:"Example: accounts deadline"}]};
+  state.notes=[{id:"s1",text:"Example note. Notes sync between devices when the data store is available.",created:new Date().toISOString(),pinned:true}];
+  state.desk={priorities:[{text:"Example: finish the teaser",done:true},{text:"Example: call back two leads",done:false},{text:"",done:false}],countdowns:[{id:"c1",label:"Example: holiday",date:add(24)}],queue:[]};
+  renderAll();
+}
+
+/* ---------------- server API ---------------- */
+let deskTimer=null, deskChain=Promise.resolve(), claudeOn=false;
+async function api(path,opts={}){
+  const r=await fetch(path,{credentials:"same-origin",...opts,headers:{"Content-Type":"application/json",...(opts.headers||{})},body:opts.body&&typeof opts.body!=="string"?JSON.stringify(opts.body):opts.body});
+  let j={}; try{j=await r.json()}catch{}
+  if(r.status===401&&path!=="/api/login"){showLogin();const e=new Error("Sign in required");e.code=401;throw e}
+  if(!r.ok){const e=new Error(j.error||"Something went wrong. Try again.");e.code=r.status;throw e}
+  return j;
+}
+function applyState(j){
+  state.today=j.today||null; state.settings=j.settings||{}; state.notes=j.notes||[];
+  const d=j.desk||{}; if(!deskTimer) state.desk={priorities:d.priorities||[],countdowns:d.countdowns||[],queue:d.queue||[]};
+  claudeOn=!!j.claude; state.ready=true;
+  $("#askCard").hidden=false; $("#askOff").hidden=claudeOn; $("#askForm").hidden=!claudeOn; $("#draftForm").hidden=!claudeOn;
+  if(synth)loadVoices();
+  renderBrief();renderWeather();renderAgenda();renderNotes();renderCd();renderQueue();
+  if(!/^pt/.test(document.activeElement?.id||"")) renderPri();
+  const errs=state.today?.errors||[]; $("#briefErr").textContent=errs.join(" · "); $("#briefErr").hidden=!errs.length;
+}
+let loading=false;
+async function load(refresh){
+  if(loading) return; loading=true;
+  try{ applyState(await api("/api/state"+(refresh?"?refresh=1":""))); hideLogin(); }
+  catch(e){ if(e.code!==401){ if(!state.ready) sampleEdition(); toast(e.message) } }
+  finally{ loading=false }
+}
+function boot(){
+  renderAll();
+  load();
+  setInterval(()=>{ if(document.visibilityState==="visible") load() },60000);
+  document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="visible") load() });
+}
+function saveDesk(){ // coalesced, one request at a time
+  clearTimeout(deskTimer);
+  deskTimer=setTimeout(()=>{const body=JSON.parse(JSON.stringify(state.desk));
+    deskChain=deskChain.then(()=>api("/api/desk",{method:"PUT",body})).catch(e=>{if(e.code!==401)toast("Couldn't save. Check your connection.")}).finally(()=>{deskTimer=null})},500);
+}
+async function addNote(text,via){
+  text=text.trim(); if(!text) return false;
+  try{const {note}=await api("/api/notes",{method:"POST",body:{text,via}});state.notes.unshift(note);renderNotes();return true}
+  catch(e){if(e.code!==401)toast(e.message);return false}
+}
+
+/* ---------------- sign in ---------------- */
+function showLogin(){ const l=$("#login"); if(!l.open){ try{l.showModal()}catch{l.setAttribute("open","")} setTimeout(()=>$("#pw").focus(),100) } }
+function hideLogin(){ const l=$("#login"); if(l.open) l.close() }
+$("#login").addEventListener("cancel",e=>e.preventDefault());
+$("#loginForm").onsubmit=async e=>{
+  e.preventDefault(); const b=$("#loginBtn"); b.disabled=true; $("#loginErr").textContent="";
+  try{ await api("/api/login",{method:"POST",body:{password:$("#pw").value}}); $("#pw").value=""; tone("done"); hideLogin(); load() }
+  catch(err){ $("#loginErr").textContent=err.message; tone("del") }
+  finally{ b.disabled=false }
+};
+$("#signOut").onclick=async()=>{ try{await api("/api/logout",{method:"POST"})}catch{} location.reload() };
+
+/* ---------------- notebook events ---------------- */
+$("#noteForm").onsubmit=async e=>{e.preventDefault();const i=$("#noteInput");if(await addNote(i.value)){i.value="";try{sessionStorage.removeItem("md.draft")}catch{};tone("save");toast("Saved")}};
+$("#noteInput").onkeydown=e=>{if(e.key==="Enter"&&(e.metaKey||e.ctrlKey)){e.preventDefault();$("#noteForm").requestSubmit()}};
+try{const dr=sessionStorage.getItem("md.draft");if(dr)$("#noteInput").value=dr}catch{}
+$("#noteInput").oninput=e=>{try{sessionStorage.setItem("md.draft",e.target.value)}catch{}};
+$("#tabAll").onclick=()=>{state.filter="all";$("#tabAll").setAttribute("aria-selected","true");$("#tabPin").setAttribute("aria-selected","false");renderNotes()};
+$("#tabPin").onclick=()=>{state.filter="pin";$("#tabPin").setAttribute("aria-selected","true");$("#tabAll").setAttribute("aria-selected","false");renderNotes()};
+$("#notes").onclick=async e=>{
+  const btn=e.target.closest("button"); if(!btn) return;
+  const id=btn.closest(".note").dataset.id, n=state.notes.find(x=>x.id===id); if(!n) return;
+  if(btn.dataset.act==="say") speak(n.text);
+  if(btn.dataset.act==="pin"){ n.pinned=!n.pinned; renderNotes(); tone("open");
+    try{await api("/api/notes?id="+encodeURIComponent(id),{method:"PATCH",body:{pinned:n.pinned}})}catch(err){n.pinned=!n.pinned;renderNotes();toast(err.message)} }
+  if(btn.dataset.act==="del"){ btn.outerHTML=`<button class="ib confirm" data-act="del2">Delete?</button>`; setTimeout(()=>renderNotes(),3500) }
+  if(btn.dataset.act==="del2"){ try{await api("/api/notes?id="+encodeURIComponent(id),{method:"DELETE"});state.notes=state.notes.filter(x=>x.id!==id);renderNotes();tone("del")}catch(err){toast(err.message)} }
+};
+
+/* ---------------- priorities & countdowns ---------------- */
+$("#pri").addEventListener("input",e=>{const m=e.target.id.match(/^pt(\d)$/);if(!m)return;const i=+m[1];
+  const pr=[0,1,2].map(k=>state.desk.priorities?.[k]||{text:"",done:false});pr[i]={...pr[i],text:e.target.value};state.desk.priorities=pr;saveDesk()});
+$("#pri").addEventListener("change",e=>{const m=e.target.id.match(/^pc(\d)$/);if(!m)return;const i=+m[1];
+  const pr=[0,1,2].map(k=>state.desk.priorities?.[k]||{text:"",done:false});pr[i]={...pr[i],done:e.target.checked};state.desk.priorities=pr;
+  if(e.target.checked)tone("done");renderPri();saveDesk()});
+$("#cdForm").onsubmit=e=>{e.preventDefault();const l=$("#cdLabel").value.trim(),d=$("#cdDate").value;
+  if(!l||!d){toast("Add a name and a date");return}
+  state.desk.countdowns=[...(state.desk.countdowns||[]),{id:"c"+Date.now().toString(36),label:l,date:d}];
+  $("#cdLabel").value="";$("#cdDate").value="";renderCd();saveDesk();tone("save")};
+$("#cd").onclick=e=>{const b=e.target.closest("[data-cd]");if(!b)return;state.desk.countdowns=state.desk.countdowns.filter(c=>c.id!==b.dataset.cd);renderCd();saveDesk();tone("del")};
+
+/* ---------------- settings ---------------- */
+const dlg=$("#settings");
+$("#settingsBtn").onclick=()=>{$("#setPlace").value=state.settings.place||"";$("#setCal").value=state.settings.icalUrl||"";try{dlg.showModal()}catch{dlg.setAttribute("open","")}};
+$("#settingsForm").onsubmit=async e=>{
+  if(e.submitter?.value!=="save") return;
+  e.preventDefault();
+  const btn=$("#saveSettings"); btn.disabled=true;
+  try{const j=await api("/api/settings",{method:"PUT",body:{place:$("#setPlace").value.trim(),icalUrl:$("#setCal").value.trim()}});
+    state.settings=j.settings; if(j.today) state.today=j.today; renderWeather(); renderAgenda();
+    const errs=j.today?.errors||[]; toast(errs.length?errs.join(" · "):"Saved. Weather and diary updated."); tone("save"); dlg.close()}
+  catch(err){toast(err.message)}
+  finally{btn.disabled=false}
+};
+function saveVoice(name){ state.settings={...state.settings,voice:name}; api("/api/settings",{method:"PUT",body:{voice:name}}).catch(()=>{}) }
+$("#refreshBrief").onclick=async()=>{const b=$("#refreshBrief");b.disabled=true;$("#briefWhen").textContent="Rewriting…";await load(true);b.disabled=false;tone("open")};
+
+/* ---------------- Claude: drafting + ask ---------------- */
+$("#draftForm").onsubmit=async e=>{
+  e.preventDefault();
+  const topic=$("#draftTopic").value.trim(), net=$("#draftNet").value; if(!topic){toast("Give it a topic first");return}
+  const btn=$("#draftBtn"); btn.disabled=true; $("#draftStatus").textContent="Drafting…";
+  try{
+    const {text,platform}=await api("/api/draft",{method:"POST",body:{topic,platform:net}});
+    state.desk.queue=[...(state.desk.queue||[]),{id:"q"+Date.now().toString(36),platform,text:text.trim(),created:new Date().toISOString()}].slice(-12);
+    renderQueue();saveDesk();$("#draftTopic").value="";$("#draftStatus").textContent="Added to your queue. Tidy it in the app before posting.";tone("save");
+  }catch(err){$("#draftStatus").textContent=err.code===401?"":err.message}
+  finally{btn.disabled=false}
+};
+$("#queue").onclick=async e=>{const b=e.target.closest("[data-qa]");if(!b)return;const id=b.closest(".qi").dataset.q,item=state.desk.queue.find(x=>x.id===id);if(!item)return;
+  if(b.dataset.qa==="copy"){try{await navigator.clipboard.writeText(item.text);toast("Copied. Paste it into "+item.platform)}catch{const r=document.createRange();r.selectNodeContents(b.closest(".qi").querySelector("p"));const s=getSelection();s.removeAllRanges();s.addRange(r);toast("Selected. Press ⌘C to copy")}}
+  if(b.dataset.qa==="del"){state.desk.queue=state.desk.queue.filter(x=>x.id!==id);renderQueue();saveDesk();tone("del")}};
+
+let askCtl=null;
+$("#askInput").onkeydown=e=>{if(e.key==="Enter"&&(e.metaKey||e.ctrlKey)){e.preventDefault();$("#askForm").requestSubmit()}};
+$("#askStop").onclick=()=>askCtl?.abort();
+async function askClaude(q,{spoken=false}={}){
+  const out=$("#askOut"); $("#askDid").textContent="";
+  out.classList.add("thinking"); out.textContent="Thinking…"; $("#askBtn").disabled=true; $("#askStop").hidden=false;
+  askCtl=new AbortController();
+  try{
+    const j=await api("/api/ask",{method:"POST",body:{question:q},signal:askCtl.signal});
+    out.classList.remove("thinking"); out.textContent=j.text; $("#askDid").textContent=(j.did||[]).join(" · ");
+    if(j.desk&&(j.did||[]).length){ state.desk=j.desk; renderPri(); renderCd(); }
+    if((j.did||[]).some(x=>/Note/.test(x))) load();
+    $("#askInput").value=""; tone((j.did||[]).length?"done":"open");
+    if(spoken||speakReplies) speak(j.text);
+  }catch(err){out.classList.remove("thinking");out.textContent="";if(err.name!=="AbortError"&&err.code!==401)$("#askDid").textContent=err.message}
+  finally{$("#askBtn").disabled=false;$("#askStop").hidden=true}
+}
+$("#askForm").onsubmit=e=>{e.preventDefault();const q=$("#askInput").value.trim();if(q)askClaude(q)};
+
+/* ---------------- voice in: the microphone ---------------- */
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+let rec=null, recTarget=null;
+function listen(target,{onDone}={}){
+  if(!SR){toast("This browser can't listen. Use the mic on your keyboard instead.");return}
+  if(rec){rec.stop();return}
+  synth?.cancel();
+  const field=$(target), startText=field.value?field.value.replace(/\s*$/," "):"";
+  rec=new SR(); rec.lang="en-GB"; rec.interimResults=true; rec.continuous=false; recTarget=target;
+  document.querySelectorAll(`[data-mic="${target}"]`).forEach(b=>b.setAttribute("aria-pressed","true"));
+  document.body.classList.add("listening");
+  let finalText="";
+  rec.onresult=e=>{let interim="";for(let i=e.resultIndex;i<e.results.length;i++){const t=e.results[i][0].transcript;if(e.results[i].isFinal)finalText+=t;else interim+=t}
+    field.value=startText+finalText+interim; field.dispatchEvent(new Event("input"))};
+  rec.onerror=e=>{if(e.error==="not-allowed"||e.error==="service-not-allowed")toast("Microphone access is blocked. Allow it for this site in your browser settings.");else if(e.error!=="no-speech"&&e.error!=="aborted")toast("Didn't catch that. Try again.")};
+  rec.onend=()=>{document.querySelectorAll(`[data-mic="${recTarget}"]`).forEach(b=>b.setAttribute("aria-pressed","false"));document.body.classList.remove("listening");
+    rec=null; const said=finalText.trim(); if(said&&onDone) onDone(said)};
+  tone("open");
+  try{rec.start()}catch{rec=null;document.body.classList.remove("listening")}
+}
+document.querySelectorAll("[data-mic]").forEach(b=>{ if(!SR) b.hidden=true;
+  b.onclick=()=>listen(b.dataset.mic, b.dataset.mic==="#askInput"?{onDone:said=>askClaude($("#askInput").value.trim()||said,{spoken:true})}:{}) });
+$("#dockTalk").onclick=()=>{
+  if(!claudeOn){toast("Add your Anthropic API key in Vercel to talk to Claude.");return}
+  if(!SR){$("#dockAsk")?.click();return}
+  $("#askCard").scrollIntoView({behavior:"smooth",block:"center"});
+  listen("#askInput",{onDone:said=>askClaude($("#askInput").value.trim()||said,{spoken:true})});
+};
+
+$("#dockNote").onclick=()=>{const i=$("#noteInput");i.scrollIntoView({behavior:"smooth",block:"center"});setTimeout(()=>i.focus({preventScroll:true}),350);tone("open")};
+$("#dockBrief").onclick=()=>$("#readBrief").click();
+$("#voiceTest").onclick=()=>{const v=voiceMap.get(voiceSel.value);speak("Good morning James. This is "+(v?v.name.replace(/\s*\(.*\)/,""):"your voice")+".")};
+$("#closeSettings").onclick=()=>dlg.close();
+setInterval(tick,1000); tick();
+boot();
+})();
+</script>
+</body>
+</html>
