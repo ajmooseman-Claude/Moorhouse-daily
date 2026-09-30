@@ -122,7 +122,7 @@ button{cursor:pointer}
 
 /* ---------- grid ---------- */
 .grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:20px}
-.s7{grid-column:span 7}.s5{grid-column:span 5}.s4{grid-column:span 4}
+.s7{grid-column:span 7}.s5{grid-column:span 5}.s4{grid-column:span 4}.s12{grid-column:1/-1}
 @media (max-width:1040px){.s7,.s5{grid-column:1/-1}.s4{grid-column:span 6}.s4:last-child{grid-column:1/-1}}
 @media (max-width:680px){.s4,.s4:last-child{grid-column:1/-1}.grid{gap:14px}}
 .card{padding:20px;display:flex;flex-direction:column;gap:14px;min-width:0;animation:rise .8s var(--spring) both;animation-delay:calc(var(--i,0)*60ms)}
@@ -346,6 +346,13 @@ body.listening #dockTalk{color:var(--danger)}
 .cat{font:600 10.5px/1 var(--f-sans);padding:4px 7px;border-radius:999px;background:var(--hair);color:var(--ink-2)}
 .cat.money{background:color-mix(in srgb,var(--warn) 22%,transparent);color:color-mix(in srgb,var(--warn) 70%,var(--ink))}
 .cat.business{background:var(--tint-soft);color:var(--tint)}
+.cat.high{background:color-mix(in srgb,var(--danger) 18%,transparent);color:var(--danger)}
+.cat.unread{background:var(--tint-soft);color:var(--tint)}
+.ti.unread{box-shadow:inset 3px 0 0 var(--c,var(--tint))}
+.mm-grid{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(220px,.75fr);gap:18px;align-items:start}
+@media (max-width:800px){.mm-grid{grid-template-columns:1fr}}
+.mm-list{display:grid;align-content:start;gap:8px;max-height:380px;overflow:auto;margin-right:-6px;padding-right:6px}
+.status.bad{color:var(--danger)}
 .from{font:600 15px var(--f-sans);overflow-wrap:anywhere}
 .subj{font:500 14px var(--f-sans);overflow-wrap:anywhere}
 .sum{font:400 13px var(--f-sans);color:var(--ink-2);overflow-wrap:anywhere}
@@ -416,6 +423,22 @@ body.listening #dockTalk{color:var(--danger)}
     <section class="glass card wx s5" id="wxCard" style="--i:1" aria-labelledby="wxH">
       <div class="head"><h2 id="wxH"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.4 1.4M17.6 17.6 19 19M5 19l1.4-1.4M17.6 6.4 19 5"/></svg>Weather</h2><span class="meta" id="wxPlace">—</span></div>
       <div id="wxBody"></div>
+    </section>
+
+    <!-- From The main man -->
+    <section class="glass card s12" id="mmCard" style="--i:2" aria-labelledby="mmH">
+      <div class="head"><h2 id="mmH"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16v10H7l-3 3z"/></svg>From The main man</h2><span class="row" style="gap:8px"><span class="meta" id="mmMeta">Up to date</span><button type="button" class="btn sm plain" id="mmAllRead" hidden>Mark all read</button></span></div>
+      <div class="mm-grid">
+        <div class="mm-list" id="mmList" aria-live="polite"></div>
+        <form class="composer" id="mmForm">
+          <label class="eyebrow" for="mmInput">Message The main man</label>
+          <textarea class="field" id="mmInput" rows="3" maxlength="2000" placeholder="Ask him to chase something, or tell him what changed."></textarea>
+          <div class="row" style="justify-content:space-between">
+            <span class="status" id="mmStatus" role="status"></span>
+            <button class="btn primary" type="submit" id="mmSend"><span>Send</span></button>
+          </div>
+        </form>
+      </div>
     </section>
 
     <!-- Agenda -->
@@ -542,7 +565,7 @@ body.listening #dockTalk{color:var(--danger)}
 </dialog>
 
 <div class="scrim" id="trayScrim" hidden></div>
-<aside class="tray glass" id="tray" aria-label="Email notifications">
+<aside class="tray glass" id="tray" aria-label="Notifications">
   <div class="tray-head"><h2>Notifications</h2><span class="row" style="gap:4px"><button type="button" class="btn sm plain" id="trayAllRead">Mark all read</button><button type="button" class="ib" id="trayClose" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 6l12 12M18 6 6 18"/></svg></button></span></div>
   <div class="legend" id="trayChips"></div>
   <div class="tray-list" id="trayList"></div>
@@ -562,13 +585,14 @@ body.listening #dockTalk{color:var(--danger)}
 </dialog>
 
 
+<script src="/js/feed.js"></script>
 <script>
 (() => {
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const store = { get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch{return d}}, set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}} };
 const TZ = "Europe/London";
-const state={today:null,desk:{priorities:[],countdowns:[],queue:[]},notes:[],settings:{},filter:"all",ready:false,sample:false};
+const state={today:null,desk:{priorities:[],countdowns:[],queue:[]},notes:[],settings:{},mainman:{items:[],canMessage:true,unread:0},filter:"all",ready:false,sample:false};
 
 /* ---------------- sound (Web Audio, starts on first interaction) ---------------- */
 let soundOn = store.get("md.sound", true), actx = null;
@@ -707,7 +731,8 @@ function wxIcon(c){const k=wxKind(c),s='fill="none" stroke="currentColor" stroke
 function renderBrief(){
   const t=state.today;
   if(t?.brief){$("#briefText").textContent=t.brief}
-  $("#briefWhen").textContent=t?.updatedAt?("Updated "+relTime(t.updatedAt)):"Waiting for the first run";
+  const who=t?.briefFrom==="main-man"?" · The main man":"";
+  $("#briefWhen").textContent=t?.updatedAt?("Updated "+relTime(t.updatedAt)+who):"Waiting for the first run";
   $("#footLeft").textContent=t?.updatedAt?("Edition set "+fmt({weekday:"short",hour:"2-digit",minute:"2-digit"},new Date(t.updatedAt))):"Edition not yet set";
 }
 function relTime(iso){const d=new Date(iso),m=Math.round((Date.now()-d)/6e4);
@@ -806,7 +831,22 @@ function renderQueue(){
     <button class="ib" data-qa="del" title="Remove" aria-label="Remove"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 6l12 12M18 6 6 18"/></svg></button></span></div><p>${esc(x.text)}</p></div>`).join("");
 }
 
-function renderAll(){renderBrief();renderWeather();renderAgenda();renderNotes();renderPri();renderCd();renderQueue()}
+function renderMainman(){
+  const box=$("#mmList"); if(!box||!globalThis.MDFeed) return;
+  const items=state.mainman?.items||[];
+  box.innerHTML=MDFeed.renderFeed(items);
+  const unread=items.filter(i=>i.kind!=="sent"&&!i.seen).length;
+  $("#mmMeta").textContent=unread?`${unread} unread`:"Up to date";
+  $("#mmAllRead").hidden=!unread;
+  const st=$("#mmStatus");
+  if(state.mainman && state.mainman.canMessage===false && !st.textContent){
+    st.textContent="The main man isn't connected yet. Add the webhook address and key in Vercel.";
+    st.classList.add("bad"); st.dataset.hint="1";
+  } else if(state.mainman?.canMessage && st.dataset.hint==="1"){
+    st.textContent=""; st.classList.remove("bad"); st.dataset.hint="";
+  }
+}
+function renderAll(){renderBrief();renderWeather();renderAgenda();renderNotes();renderPri();renderCd();renderQueue();renderMainman()}
 
 /* ---------------- sample edition (no data store) ---------------- */
 function sampleEdition(){
@@ -819,6 +859,7 @@ function sampleEdition(){
     agenda:[{date:t,start:"10:00",end:"11:00",title:"Example: client valuation call",where:"Phone"},{date:t,start:"14:30",end:"15:30",title:"Example: site visit",where:"Example Road"},{date:add(1),allDay:true,title:"Example: accounts deadline"}]};
   state.notes=[{id:"s1",text:"Example note. Notes sync between devices when the data store is available.",created:new Date().toISOString(),pinned:true}];
   state.desk={priorities:[{text:"Example: finish the teaser",done:true},{text:"Example: call back two leads",done:false},{text:"",done:false}],countdowns:[{id:"c1",label:"Example: holiday",date:add(24)}],queue:[]};
+  state.mainman={items:[{id:"sample",kind:"notice",title:"Example: a prospect replied",body:"Sample alert from The main man.",business:"appleton",at:new Date().toISOString(),seen:false}],canMessage:true,unread:1};
   renderAll();
 }
 
@@ -839,6 +880,7 @@ function applyState(j){
   if(synth)loadVoices();
   renderBrief();renderWeather();renderAgenda();renderNotes();renderCd();renderQueue();
   if(!/^pt/.test(document.activeElement?.id||"")) renderPri();
+  syncMainman(j.mainman,{pop:true});
   const errs=state.today?.errors||[]; $("#briefErr").textContent=errs.join(" · "); $("#briefErr").hidden=!errs.length;
 }
 let loading=false;
@@ -1007,16 +1049,92 @@ $("#dockTalk").onclick=()=>{
   listen("#askInput",{onDone:said=>askClaude($("#askInput").value.trim()||said,{spoken:true})});
 };
 
-/* ---------------- mail: pop-ups, tray, accounts ---------------- */
+/* ---------------- The main man: feed, message box, pop-ups ---------------- */
 const mail={accounts:[],items:[],filtered:0,outlookReady:false,loaded:false};
+let mmKnown=new Set(), mmReady=false;
+function unreadCount(){
+  const mailU=mail.items.filter(i=>!i.seen).length;
+  const mmU=(state.mainman?.items||[]).filter(i=>i.kind!=="sent"&&!i.seen).length;
+  return mailU+mmU;
+}
+function paintBell(){
+  const unread=unreadCount();
+  const b=$("#bellCount");b.textContent=unread>99?"99+":String(unread);b.hidden=!unread;
+  $("#bellBtn").setAttribute("aria-label",unread?`Notifications, ${unread} unread`:"Notifications");
+}
+function syncMainman(pack,{pop=false}={}){
+  const items=pack?.items||[];
+  state.mainman={items,canMessage:!!pack?.canMessage,unread:pack?.unread||items.filter(i=>i.kind!=="sent"&&!i.seen).length};
+  const fresh=[];
+  if(pop&&mmReady){
+    for(const it of items) if(it.kind==="notice"&&!it.seen&&!mmKnown.has(it.id)) fresh.push(it);
+  }
+  for(const it of items) mmKnown.add(it.id);
+  mmReady=true;
+  renderMainman();
+  paintBell();
+  if($("#tray").classList.contains("open")) renderTray();
+  fresh.slice(0,3).forEach((it,n)=>setTimeout(()=>popMain(it),n*700));
+}
+function popMain(it){
+  if(!globalThis.MDFeed) return;
+  const biz=globalThis.MDFeed.business(it.business), stack=$("#popups");
+  const el=document.createElement("div");
+  el.className="pop glass"; el.style.setProperty("--c",biz.color); el.setAttribute("role","status");
+  el.innerHTML=globalThis.MDFeed.renderPopup(it);
+  stack.prepend(el); while(stack.children.length>3) stack.lastChild.remove();
+  requestAnimationFrame(()=>el.classList.add("in"));
+  let t=setTimeout(close,14000);
+  function close(){el.classList.remove("in");setTimeout(()=>el.remove(),450)}
+  el.onmouseenter=()=>clearTimeout(t); el.onmouseleave=()=>{t=setTimeout(close,5000)};
+  el.onclick=e=>{ if(e.target.closest(".x")){close();return} close(); openTray(); };
+  tone("save");
+  if(speakReplies) speak(`The main man. ${it.title}. ${it.body||""}`);
+}
+async function markFeed(action,body){
+  try{ syncMainman(await api("/api/feed?action="+action,{method:"POST",body}),{pop:false}); }
+  catch(err){ if(err.code!==401) toast(err.message); }
+}
+$("#mmList").addEventListener("click",e=>{
+  const btn=e.target.closest("[data-act]"); const card=e.target.closest("[data-id]");
+  const id=card?.dataset.id; if(!id) return;
+  if(btn?.dataset.act==="read"){ markFeed("seen",{ids:[id]}); tone("done"); }
+  if(btn?.dataset.act==="dismiss"){ markFeed("dismiss",{ids:[id]}); tone("del"); }
+  if(e.target.closest("a")) markFeed("seen",{ids:[id]});
+});
+$("#mmAllRead").onclick=()=>{ markFeed("seen",{all:true}); tone("done"); };
+$("#mmInput").onkeydown=e=>{ if(e.key==="Enter"&&(e.metaKey||e.ctrlKey)){ e.preventDefault(); $("#mmForm").requestSubmit(); } };
+$("#mmInput").addEventListener("focus",()=>{ const st=$("#mmStatus"); if(st.textContent==="Sent."){ st.textContent=""; st.classList.remove("bad"); } });
+$("#mmForm").onsubmit=async e=>{
+  e.preventDefault();
+  const text=$("#mmInput").value.trim(), st=$("#mmStatus"), btn=$("#mmSend");
+  st.dataset.hint="";
+  if(!text){ st.textContent="Write a message first."; st.classList.add("bad"); return; }
+  btn.disabled=true; st.classList.remove("bad"); st.textContent="Sending…";
+  try{
+    const j=await api("/api/feed?action=message",{method:"POST",body:{message:text}});
+    $("#mmInput").value="";
+    syncMainman(j,{pop:false});
+    st.classList.remove("bad"); st.textContent="Sent.";
+    tone("save");
+  }catch(err){
+    st.textContent=err.code===401?"":err.message;
+    st.classList.toggle("bad",err.code!==401);
+  }finally{ btn.disabled=false; }
+};
+async function pollFeed(){
+  if(!state.ready||document.visibilityState!=="visible") return;
+  try{ syncMainman(await api("/api/feed"),{pop:true}); }catch{}
+}
+setInterval(pollFeed,20000);
+
+/* ---------------- mail: pop-ups, tray, accounts ---------------- */
 const CAT={person:"Person",business:"Business",money:"Money"};
 const accById=id=>mail.accounts.find(a=>a.id===id)||{label:"Email",color:"#7A8699"};
 function ago(iso){const m=Math.round((Date.now()-Date.parse(iso))/6e4);if(m<1)return"now";if(m<60)return m+"m";const h=Math.round(m/60);if(h<24)return h+"h";return fmt({day:"numeric",month:"short"},new Date(iso))}
 function applyMail(j){
   mail.accounts=j.accounts||[];mail.items=j.items||[];mail.filtered=j.filtered||0;mail.outlookReady=!!j.outlookReady;mail.loaded=true;
-  const unread=mail.items.filter(i=>!i.seen).length;
-  const b=$("#bellCount");b.textContent=unread>99?"99+":unread;b.hidden=!unread;
-  $("#bellBtn").setAttribute("aria-label",unread?`Notifications, ${unread} unread`:"Notifications");
+  paintBell();
   if($("#tray").classList.contains("open"))renderTray();
   if(dlg.open)renderMailAccounts();
 }
@@ -1043,35 +1161,53 @@ function popMail(it){
 }
 function renderTray(){
   const list=$("#trayList"), filt=$("#tray").dataset.acc||"";
-  const items=mail.items.filter(i=>!filt||i.acc===filt);
-  const unread=items.filter(i=>!i.seen), read=items.filter(i=>i.seen).slice(0,30);
-  $("#trayChips").innerHTML=mail.accounts.length>1?[`<button class="chip" data-acc="" aria-pressed="${!filt}"><i style="--c:var(--ink-3)"></i>All</button>`,...mail.accounts.map(a=>`<button class="chip" data-acc="${esc(a.id)}" style="--c:${esc(a.color)}" aria-pressed="${filt===a.id}"><i></i>${esc(a.label)}</button>`)].join(""):"";
+  const mmAll=(state.mainman?.items||[]).filter(i=>i.kind!=="sent");
+  const mm=filt&&filt!=="main-man"?[]:mmAll;
+  const mails=filt==="main-man"?[]:mail.items.filter(i=>!filt||i.acc===filt);
+  const sources=[];
+  if(mmAll.length) sources.push({id:"main-man",label:"The main man",color:"#8B6BFF"});
+  for(const a of mail.accounts) sources.push({id:a.id,label:a.label,color:a.color});
+  $("#trayChips").innerHTML=sources.length>1?[`<button type="button" class="chip" data-acc="" aria-pressed="${!filt}"><i style="--c:var(--ink-3)"></i>All</button>`,...sources.map(a=>`<button type="button" class="chip" data-acc="${esc(a.id)}" style="--c:${esc(a.color)}" aria-pressed="${filt===a.id}"><i></i>${esc(a.label)}</button>`)].join(""):"";
   const row=it=>{const a=accById(it.acc);return `<article class="ti ${it.seen?"seen":""}" data-key="${esc(it.key)}" style="--c:${esc(a.color)}">
     <div class="ti-top"><span class="dot"></span><span class="acc">${esc(a.label)}</span><span class="cat ${esc(it.category)}">${esc(CAT[it.category]||"")}</span><span class="when">${esc(ago(it.at))}</span></div>
     <div class="from">${esc(it.fromName)}</div><div class="subj">${esc(it.subject)}</div>${it.summary?`<div class="sum">${esc(it.summary)}</div>`:""}
     <div class="ti-acts">${it.link?`<a class="btn sm" href="${esc(it.link)}" target="_blank" rel="noopener">Open</a>`:""}${it.mailLink?`<a class="btn sm" href="${esc(it.mailLink)}">Mail app</a>`:""}${it.seen?"":`<button class="btn sm" data-act="seen">Mark read</button>`}<button class="ib" data-act="say" aria-label="Read aloud"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7"/></svg></button></div></article>`};
+  const pack=(it,html)=>({at:it.at||"",html});
+  const feed=globalThis.MDFeed;
+  const unread=[...mm.filter(i=>!i.seen).map(it=>pack(it,feed?feed.renderItem(it):"")),...mails.filter(i=>!i.seen).map(it=>pack(it,row(it)))].sort((a,b)=>String(b.at).localeCompare(String(a.at)));
+  const read=[...mm.filter(i=>i.seen).map(it=>pack(it,feed?feed.renderItem(it):"")),...mails.filter(i=>i.seen).slice(0,30).map(it=>pack(it,row(it)))].sort((a,b)=>String(b.at).localeCompare(String(a.at)));
   let html="";
-  if(!mail.accounts.length) html=`<div class="empty"><strong>No email accounts yet.</strong>Add iCloud, Gmail or Outlook in Settings and relevant new emails will show up here.<div><button class="btn plain" type="button" id="trayToSettings">Open Settings</button></div></div>`;
-  else if(!items.length) html=`<div class="empty"><strong>All quiet.</strong>Nothing needing you right now. ${mail.filtered?`${mail.filtered} newsletters, promotions and automated emails have been kept out of the way so far.`:""}</div>`;
-  else{ html=(unread.length?unread.map(row).join(""):`<div class="empty"><strong>You're up to date.</strong>No unread notifications.</div>`)
-    +(read.length?`<div class="tray-sub"><span>Earlier</span><button class="btn sm plain" data-act="clear">Clear</button></div>`+read.map(row).join(""):""); }
+  if(!mail.accounts.length&&!mmAll.length) html=`<div class="empty"><strong>No email accounts yet.</strong>Add iCloud, Gmail or Outlook in Settings and relevant new emails will show up here.<div><button class="btn plain" type="button" id="trayToSettings">Open Settings</button></div></div>`;
+  else if(!unread.length&&!read.length) html=`<div class="empty"><strong>All quiet.</strong>${filt?"Nothing in this filter.":`Nothing needing you right now. ${mail.filtered?`${mail.filtered} newsletters, promotions and automated emails have been kept out of the way so far.`:""}`}</div>`;
+  else{ html=(unread.length?unread.map(x=>x.html).join(""):`<div class="empty"><strong>You're up to date.</strong>No unread notifications.</div>`)
+    +(read.length?`<div class="tray-sub"><span>Earlier</span><button class="btn sm plain" data-act="clear">Clear</button></div>`+read.map(x=>x.html).join(""):""); }
   list.innerHTML=html;
   const n=mail.accounts.filter(a=>a.lastError).length;
-  $("#trayFoot").textContent=mail.accounts.length?(n?`${n} account${n>1?"s":""} couldn't be checked. See Settings.`:`Checking ${mail.accounts.length} account${mail.accounts.length>1?"s":""} every 2 minutes while this page is open.`):"";
+  $("#trayFoot").textContent=mail.accounts.length?(n?`${n} account${n>1?"s":""} couldn't be checked. See Settings.`:`Checking ${mail.accounts.length} account${mail.accounts.length>1?"s":""} every 2 minutes while this page is open.`):(mmAll.length?"Email isn't connected. Alerts from The main man still show up here.":"");
   $("#trayAllRead").hidden=!unread.length;
 }
-function openTray(){ document.querySelectorAll(".pop").forEach(p=>{p.classList.remove("in");setTimeout(()=>p.remove(),450)}); $("#tray").classList.add("open"); $("#trayScrim").hidden=false; renderTray(); tone("open"); $("#trayClose").focus({preventScroll:true}) }
+function openTray(){ document.querySelectorAll(".pop").forEach(p=>{p.classList.remove("in");setTimeout(()=>p.remove(),450)}); $("#tray").classList.add("open"); $("#trayScrim").hidden=false; renderTray(); tone("open"); $("#trayClose").focus({preventScroll:true}); api("/api/feed").then(j=>syncMainman(j,{pop:false})).catch(()=>{}) }
 function closeTray(){ $("#tray").classList.remove("open"); $("#trayScrim").hidden=true }
 $("#bellBtn").onclick=()=>$("#tray").classList.contains("open")?closeTray():openTray();
 $("#trayClose").onclick=closeTray; $("#trayScrim").onclick=closeTray;
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&$("#tray").classList.contains("open"))closeTray()});
 async function markSeen(body){ try{applyMail(await api("/api/mail?action=seen",{method:"POST",body}))}catch(e){toast(e.message)} }
-$("#trayAllRead").onclick=()=>{markSeen({all:true});tone("done")};
+$("#trayAllRead").onclick=async()=>{ await markSeen({all:true}); await markFeed("seen",{all:true}); tone("done") };
 $("#tray").addEventListener("click",async e=>{
   if(e.target.id==="trayToSettings"){closeTray();$("#settingsBtn").click();return}
   const chip=e.target.closest("[data-acc]"); if(chip&&chip.classList.contains("chip")){$("#tray").dataset.acc=chip.dataset.acc;renderTray();return}
   const b=e.target.closest("[data-act]"); const card=e.target.closest(".ti");
-  if(b?.dataset.act==="clear"){try{applyMail(await api("/api/mail?action=clear",{method:"POST",body:{}}))}catch(err){toast(err.message)}return}
+  if(card?.dataset.id && (b?.dataset.act==="read" || b?.dataset.act==="dismiss")){
+    await markFeed(b.dataset.act==="read"?"seen":"dismiss",{ids:[card.dataset.id]});
+    tone(b.dataset.act==="read"?"done":"del"); return;
+  }
+  if(card?.dataset.id && e.target.closest("a")){ markFeed("seen",{ids:[card.dataset.id]}); return; }
+  if(b?.dataset.act==="clear"){
+    try{applyMail(await api("/api/mail?action=clear",{method:"POST",body:{}}))}catch(err){toast(err.message)}
+    const ids=(state.mainman?.items||[]).filter(i=>i.seen&&i.kind!=="sent").map(i=>i.id);
+    if(ids.length) await markFeed("dismiss",{ids});
+    return;
+  }
   if(!card) return; const it=mail.items.find(x=>x.key===card.dataset.key); if(!it) return;
   if(b?.dataset.act==="seen"){it.seen=true;renderTray();markSeen({keys:[it.key]});tone("done")}
   if(b?.dataset.act==="say") speak(`From ${it.fromName}. ${it.subject}. ${it.summary||""}`);
