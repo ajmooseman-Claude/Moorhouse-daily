@@ -12,7 +12,8 @@ A personal front page: morning brief, weather, iCloud diary, notebook, three dai
 | Morning brief | Vercel Cron, weekdays, runs some time between 06:00 and 07:00 in summer (05:00 to 06:00 in winter) |
 | Weather | Open-Meteo, free, no key |
 | Diary | Any number of iCloud, Google or Outlook calendar links, each colour-coded |
-| Brief, Ask, post drafts | Anthropic API (your key, pay as you go) |
+| Brief, Ask, post drafts, email sorting | Anthropic API (your key, pay as you go) |
+| Email notifications | iCloud and Gmail over IMAP (app passwords), Outlook / Microsoft 365 via Microsoft Graph. Read-only. |
 
 If the cron runs late or fails, the page writes a fresh brief the first time you open it each day, and keeps weather and diary current (at most every 30 minutes) while it's open.
 
@@ -51,6 +52,35 @@ Then Deployments > the latest one > Redeploy, so the new values take effect.
 1. Open your address, enter the password.
 2. Gear icon (top right): set the weather town, add your calendars (name, link and colour for each), choose the reading voice.
 3. On iPhone: Safari > Share > Add to Home Screen, for a full-screen app icon.
+
+## Email notifications
+
+While the dashboard is open it checks your inboxes every 2 minutes. Newsletters, promotions and automated mail are dropped first (unsubscribe headers, bulk senders, Gmail's Promotions, Social and Forums tabs, Outlook's "Other" inbox). Claude then sorts what's left: real people, business contacts, and money or deadlines pop up; everything else stays quiet. Relevant emails wait in the bell tray (top right) until you mark them read. Nothing in your mailboxes is ever changed.
+
+Passwords and sign-in tokens are encrypted before they're stored.
+
+### iCloud
+1. Go to account.apple.com › Sign-In and Security › App-Specific Passwords, and create one called "Moorhouse Daily".
+2. Dashboard › gear › Email accounts › + iCloud. Enter your iCloud address (e.g. you@me.com) and that password.
+
+### Gmail
+1. 2-Step Verification must be on for the Google account.
+2. Go to myaccount.google.com/apppasswords, create one called "Moorhouse Daily" and copy the 16 letters.
+3. Dashboard › gear › Email accounts › + Gmail. Enter the address and the app password.
+
+### Outlook / Microsoft 365 (one-off, about 5 minutes)
+Microsoft needs a small app registration so the dashboard can ask for read-only access to mail.
+1. Go to entra.microsoft.com and sign in (a work Microsoft 365 account is easiest).
+2. Applications › App registrations › New registration.
+   - Name: Moorhouse Daily
+   - Supported account types: **Accounts in any organizational directory and personal Microsoft accounts**
+   - Leave Redirect URI empty. Press Register.
+3. Copy the **Application (client) ID** from the Overview page.
+4. Authentication (left menu) › Advanced settings › **Allow public client flows: Yes** › Save.
+5. In Vercel add an environment variable `MS_CLIENT_ID` with that ID, then redeploy.
+6. Dashboard › gear › Email accounts › + Outlook › Sign in with Microsoft. Enter the code it shows at microsoft.com/devicelogin and accept.
+
+If a work account says it needs admin approval, the Microsoft 365 administrator has to allow the app (Enterprise applications › Moorhouse Daily › Permissions › Grant admin consent).
 
 ## Voice
 - **Talking to it:** the mic buttons and the Talk button in the dock use the browser's speech recognition (Safari and Chrome). The first time, allow microphone access for your address.

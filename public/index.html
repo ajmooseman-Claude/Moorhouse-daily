@@ -324,6 +324,51 @@ body.listening #dockTalk{color:var(--danger)}
 .ev::before{background:var(--c)!important}
 .ev .calname{font:600 11px var(--f-sans);color:var(--c);margin-top:2px}
 .ev.done::before{opacity:.45}
+.bell{position:relative}
+.bell:hover{transform:rotate(-14deg)}
+.badge{position:absolute;top:-3px;right:-3px;min-width:18px;height:18px;padding:0 5px;box-sizing:border-box;border-radius:999px;background:var(--danger);color:#fff;font:700 11px/18px var(--f-sans);text-align:center;box-shadow:0 2px 6px rgba(0,0,0,.2)}
+.scrim{position:fixed;inset:0;z-index:7;background:rgba(0,0,0,.12)}
+.tray{position:fixed;z-index:8;top:calc(12px + env(safe-area-inset-top,0px));right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));width:min(400px,calc(100vw - 24px));
+  display:flex;flex-direction:column;gap:12px;padding:18px;box-sizing:border-box;background:var(--glass-2);
+  transform:translateX(calc(100% + 24px));transition:transform .55s var(--spring);visibility:hidden}
+.tray.open{transform:none;visibility:visible}
+.tray-head{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.tray-head h2{margin:0;font:700 22px var(--f-round);letter-spacing:-.02em}
+.tray-list{flex:1;overflow:auto;display:grid;align-content:start;gap:8px;margin-right:-8px;padding-right:8px}
+.tray-sub{display:flex;justify-content:space-between;align-items:center;margin-top:6px;font:600 12px var(--f-sans);color:var(--ink-3)}
+.tray-foot{margin:0;font:500 12px var(--f-sans);color:var(--ink-3)}
+.ti,.pop{--c:var(--tint);border-radius:18px;padding:12px 14px;display:grid;gap:3px}
+.ti{background:var(--hair)}
+.ti.seen{opacity:.6}
+.ti-top,.pop-top{display:flex;align-items:center;gap:6px;font:600 12px var(--f-sans);color:var(--ink-2)}
+.ti .dot,.pop .dot,.macc .dot{width:9px;height:9px;border-radius:50%;background:var(--c);flex:none}
+.when{margin-left:auto;color:var(--ink-3);font-weight:500}
+.cat{font:600 10.5px/1 var(--f-sans);padding:4px 7px;border-radius:999px;background:var(--hair);color:var(--ink-2)}
+.cat.money{background:color-mix(in srgb,var(--warn) 22%,transparent);color:color-mix(in srgb,var(--warn) 70%,var(--ink))}
+.cat.business{background:var(--tint-soft);color:var(--tint)}
+.from{font:600 15px var(--f-sans);overflow-wrap:anywhere}
+.subj{font:500 14px var(--f-sans);overflow-wrap:anywhere}
+.sum{font:400 13px var(--f-sans);color:var(--ink-2);overflow-wrap:anywhere}
+.ti-acts{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px}
+.ti-acts a.btn{text-decoration:none}
+.popups{position:fixed;z-index:9;top:calc(64px + env(safe-area-inset-top,0px));right:16px;width:min(360px,calc(100vw - 32px));display:grid;gap:10px;pointer-events:none}
+.pop{pointer-events:auto;cursor:pointer;background:var(--glass-2);transform:translateX(calc(100% + 32px)) scale(.96);opacity:0;transition:transform .6s var(--spring),opacity .4s}
+.pop.in{transform:none;opacity:1}
+.pop .x{width:24px;height:24px;margin-left:2px}
+.pop .x svg{width:13px;height:13px}
+.macc{--c:var(--tint);display:grid;grid-template-columns:12px 1fr auto;gap:10px;align-items:center;padding:10px 10px 10px 14px;border-radius:var(--r-in);background:var(--hair)}
+.macc-t{display:grid;gap:1px;min-width:0}
+.macc-t strong{font:600 14px var(--f-sans);color:var(--ink)}
+.macc-t small{font:500 12px var(--f-sans);color:var(--ink-3);overflow-wrap:anywhere}
+.macc-t small.err,.mailform .err{color:var(--danger)}
+.ib.confirm{width:auto}
+.mailform{display:grid;gap:10px;padding:14px;border-radius:var(--r-in);background:var(--hair)}
+.mailform p{margin:0;font-size:13px;color:var(--ink-2)}
+.mailform a{color:var(--tint)}
+.help{font-size:12.5px;color:var(--ink-2)}
+.help a{color:var(--tint)}
+.devcode{font-size:28px;letter-spacing:.18em;text-align:center;padding:10px;border-radius:12px;background:var(--glass-2);user-select:all}
+@media (max-width:520px){.popups{top:auto;bottom:calc(92px + env(safe-area-inset-bottom,0px));right:16px}}
 </style>
 </head>
 <body>
@@ -342,7 +387,7 @@ body.listening #dockTalk{color:var(--danger)}
 <div class="wrap">
   <header class="hero">
     <div class="plate glass"><i>M</i>The Moorhouse Daily</div>
-    <div class="topright"><div class="edition glass" id="edition">Vol. — · No. —</div><button type="button" class="gear glass" id="settingsBtn" aria-label="Settings" title="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button></div>
+    <div class="topright"><div class="edition glass" id="edition">Vol. — · No. —</div><button type="button" class="gear glass bell" id="bellBtn" aria-label="Notifications"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg><span class="badge" id="bellCount" hidden>0</span></button><button type="button" class="gear glass" id="settingsBtn" aria-label="Settings" title="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button></div>
     <div class="lock">
       <h1 class="dateline" id="dateline">Today</h1>
       <div class="clock" id="clock">--:--</div>
@@ -467,6 +512,13 @@ body.listening #dockTalk{color:var(--danger)}
       <div class="head"><span class="lbl">Calendars</span><button type="button" class="btn plain sm" id="addCal">+ Add calendar</button></div>
       <div id="calList" class="callist"></div>
     </div>
+    <div class="calset" id="mailBox">
+      <div class="head"><span class="lbl">Email accounts</span></div>
+      <p class="help" style="margin:0">New emails that need you pop up here. Newsletters, promotions and automated mail stay out of the way. Read-only: nothing in your mailboxes is changed.</p>
+      <div id="mailList" class="callist"></div>
+      <div class="mailform" id="mailForm" hidden></div>
+      <div class="row" id="mailAdd"><button type="button" class="btn plain sm" data-prov="icloud">+ iCloud</button><button type="button" class="btn plain sm" data-prov="gmail">+ Gmail</button><button type="button" class="btn plain sm" data-prov="outlook">+ Outlook</button><button type="button" class="btn plain sm" data-prov="imap">+ Other</button></div>
+    </div>
     <details class="howto"><summary>Where do I find a calendar link?</summary>
     <ol>
       <li><b>iCloud:</b> on your iPhone open Calendar, tap Calendars, then the ⓘ beside a calendar. Turn on Public Calendar, tap Share Link, then Copy.</li>
@@ -489,6 +541,14 @@ body.listening #dockTalk{color:var(--danger)}
   </form>
 </dialog>
 
+<div class="scrim" id="trayScrim" hidden></div>
+<aside class="tray glass" id="tray" aria-label="Email notifications">
+  <div class="tray-head"><h2>Notifications</h2><span class="row" style="gap:4px"><button type="button" class="btn sm plain" id="trayAllRead">Mark all read</button><button type="button" class="ib" id="trayClose" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 6l12 12M18 6 6 18"/></svg></button></span></div>
+  <div class="legend" id="trayChips"></div>
+  <div class="tray-list" id="trayList"></div>
+  <p class="tray-foot" id="trayFoot"></p>
+</aside>
+<div class="popups" id="popups" aria-live="polite"></div>
 <div class="toast glass" id="toast" role="status"></div>
 <dialog id="login" aria-labelledby="loginH">
   <form class="dlg glass login" id="loginForm">
@@ -784,7 +844,7 @@ function applyState(j){
 let loading=false;
 async function load(refresh){
   if(loading) return; loading=true;
-  try{ applyState(await api("/api/state"+(refresh?"?refresh=1":""))); hideLogin(); }
+  try{ applyState(await api("/api/state"+(refresh?"?refresh=1":""))); hideLogin(); if(!mail.loaded){ loadMail().then(()=>checkMail()) } }
   catch(e){ if(e.code!==401){ if(!state.ready) sampleEdition(); toast(e.message) } }
   finally{ loading=false }
 }
@@ -869,7 +929,7 @@ $("#calList").addEventListener("click",e=>{const row=e.target.closest(".calrow")
   else if(b.dataset.act==="remove"){calDraft.splice(i,1);paletteOpen=null;renderCalList();tone("del")}});
 $("#addCal").onclick=()=>{const used=new Set(calDraft.map(c=>c.color));calDraft.push({id:"",name:"",url:"",color:CAL_COLOURS.find(c=>!used.has(c))||CAL_COLOURS[calDraft.length%8]});paletteOpen=null;renderCalList();
   setTimeout(()=>$("#calList .calrow:last-child input[data-k=name]")?.focus(),50)};
-$("#settingsBtn").onclick=()=>{$("#setPlace").value=state.settings.place||"";calDraft=JSON.parse(JSON.stringify(state.settings.calendars||[]));paletteOpen=null;renderCalList();try{dlg.showModal()}catch{dlg.setAttribute("open","")}};
+$("#settingsBtn").onclick=()=>{$("#setPlace").value=state.settings.place||"";calDraft=JSON.parse(JSON.stringify(state.settings.calendars||[]));paletteOpen=null;renderCalList();mailForm=null;renderMailAccounts();try{dlg.showModal()}catch{dlg.setAttribute("open","")}};
 $("#settingsForm").onsubmit=async e=>{
   if(e.submitter?.value!=="save") return;
   e.preventDefault();
@@ -946,6 +1006,142 @@ $("#dockTalk").onclick=()=>{
   $("#askCard").scrollIntoView({behavior:"smooth",block:"center"});
   listen("#askInput",{onDone:said=>askClaude($("#askInput").value.trim()||said,{spoken:true})});
 };
+
+/* ---------------- mail: pop-ups, tray, accounts ---------------- */
+const mail={accounts:[],items:[],filtered:0,outlookReady:false,loaded:false};
+const CAT={person:"Person",business:"Business",money:"Money"};
+const accById=id=>mail.accounts.find(a=>a.id===id)||{label:"Email",color:"#7A8699"};
+function ago(iso){const m=Math.round((Date.now()-Date.parse(iso))/6e4);if(m<1)return"now";if(m<60)return m+"m";const h=Math.round(m/60);if(h<24)return h+"h";return fmt({day:"numeric",month:"short"},new Date(iso))}
+function applyMail(j){
+  mail.accounts=j.accounts||[];mail.items=j.items||[];mail.filtered=j.filtered||0;mail.outlookReady=!!j.outlookReady;mail.loaded=true;
+  const unread=mail.items.filter(i=>!i.seen).length;
+  const b=$("#bellCount");b.textContent=unread>99?"99+":unread;b.hidden=!unread;
+  $("#bellBtn").setAttribute("aria-label",unread?`Notifications, ${unread} unread`:"Notifications");
+  if($("#tray").classList.contains("open"))renderTray();
+  if(dlg.open)renderMailAccounts();
+}
+let mailBusy=false;
+async function checkMail(force){
+  if(mailBusy||!state.ready)return; mailBusy=true;
+  try{const j=await api("/api/mail?action=check",{method:"POST",body:{force:!!force}});applyMail(j);(j.added||[]).slice(-3).forEach((it,i)=>setTimeout(()=>popMail(it),i*900))}
+  catch{} finally{mailBusy=false}
+}
+function popMail(it){
+  const a=accById(it.acc), stack=$("#popups");
+  const el=document.createElement("div");
+  el.className="pop glass";el.style.setProperty("--c",a.color);el.setAttribute("role","status");
+  el.innerHTML=`<div class="pop-top"><span class="dot"></span><span class="acc">${esc(a.label)}</span><span class="cat ${esc(it.category)}">${esc(CAT[it.category]||"")}</span><span class="when">now</span><button class="ib x" aria-label="Dismiss"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+    <div class="from">${esc(it.fromName)}</div><div class="subj">${esc(it.subject)}</div>${it.summary?`<div class="sum">${esc(it.summary)}</div>`:""}`;
+  stack.prepend(el); while(stack.children.length>3) stack.lastChild.remove();
+  requestAnimationFrame(()=>el.classList.add("in"));
+  let t=setTimeout(close,14000);
+  function close(){el.classList.remove("in");setTimeout(()=>el.remove(),450)}
+  el.onmouseenter=()=>clearTimeout(t); el.onmouseleave=()=>{t=setTimeout(close,5000)};
+  el.onclick=e=>{ if(e.target.closest(".x")){close();return} close(); openTray(); };
+  tone("save");
+  if(speakReplies) speak(`New email from ${it.fromName}. ${it.summary||it.subject}`);
+}
+function renderTray(){
+  const list=$("#trayList"), filt=$("#tray").dataset.acc||"";
+  const items=mail.items.filter(i=>!filt||i.acc===filt);
+  const unread=items.filter(i=>!i.seen), read=items.filter(i=>i.seen).slice(0,30);
+  $("#trayChips").innerHTML=mail.accounts.length>1?[`<button class="chip" data-acc="" aria-pressed="${!filt}"><i style="--c:var(--ink-3)"></i>All</button>`,...mail.accounts.map(a=>`<button class="chip" data-acc="${esc(a.id)}" style="--c:${esc(a.color)}" aria-pressed="${filt===a.id}"><i></i>${esc(a.label)}</button>`)].join(""):"";
+  const row=it=>{const a=accById(it.acc);return `<article class="ti ${it.seen?"seen":""}" data-key="${esc(it.key)}" style="--c:${esc(a.color)}">
+    <div class="ti-top"><span class="dot"></span><span class="acc">${esc(a.label)}</span><span class="cat ${esc(it.category)}">${esc(CAT[it.category]||"")}</span><span class="when">${esc(ago(it.at))}</span></div>
+    <div class="from">${esc(it.fromName)}</div><div class="subj">${esc(it.subject)}</div>${it.summary?`<div class="sum">${esc(it.summary)}</div>`:""}
+    <div class="ti-acts">${it.link?`<a class="btn sm" href="${esc(it.link)}" target="_blank" rel="noopener">Open</a>`:""}${it.mailLink?`<a class="btn sm" href="${esc(it.mailLink)}">Mail app</a>`:""}${it.seen?"":`<button class="btn sm" data-act="seen">Mark read</button>`}<button class="ib" data-act="say" aria-label="Read aloud"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7"/></svg></button></div></article>`};
+  let html="";
+  if(!mail.accounts.length) html=`<div class="empty"><strong>No email accounts yet.</strong>Add iCloud, Gmail or Outlook in Settings and relevant new emails will show up here.<div><button class="btn plain" type="button" id="trayToSettings">Open Settings</button></div></div>`;
+  else if(!items.length) html=`<div class="empty"><strong>All quiet.</strong>Nothing needing you right now. ${mail.filtered?`${mail.filtered} newsletters, promotions and automated emails have been kept out of the way so far.`:""}</div>`;
+  else{ html=(unread.length?unread.map(row).join(""):`<div class="empty"><strong>You're up to date.</strong>No unread notifications.</div>`)
+    +(read.length?`<div class="tray-sub"><span>Earlier</span><button class="btn sm plain" data-act="clear">Clear</button></div>`+read.map(row).join(""):""); }
+  list.innerHTML=html;
+  const n=mail.accounts.filter(a=>a.lastError).length;
+  $("#trayFoot").textContent=mail.accounts.length?(n?`${n} account${n>1?"s":""} couldn't be checked. See Settings.`:`Checking ${mail.accounts.length} account${mail.accounts.length>1?"s":""} every 2 minutes while this page is open.`):"";
+  $("#trayAllRead").hidden=!unread.length;
+}
+function openTray(){ document.querySelectorAll(".pop").forEach(p=>{p.classList.remove("in");setTimeout(()=>p.remove(),450)}); $("#tray").classList.add("open"); $("#trayScrim").hidden=false; renderTray(); tone("open"); $("#trayClose").focus({preventScroll:true}) }
+function closeTray(){ $("#tray").classList.remove("open"); $("#trayScrim").hidden=true }
+$("#bellBtn").onclick=()=>$("#tray").classList.contains("open")?closeTray():openTray();
+$("#trayClose").onclick=closeTray; $("#trayScrim").onclick=closeTray;
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&$("#tray").classList.contains("open"))closeTray()});
+async function markSeen(body){ try{applyMail(await api("/api/mail?action=seen",{method:"POST",body}))}catch(e){toast(e.message)} }
+$("#trayAllRead").onclick=()=>{markSeen({all:true});tone("done")};
+$("#tray").addEventListener("click",async e=>{
+  if(e.target.id==="trayToSettings"){closeTray();$("#settingsBtn").click();return}
+  const chip=e.target.closest("[data-acc]"); if(chip&&chip.classList.contains("chip")){$("#tray").dataset.acc=chip.dataset.acc;renderTray();return}
+  const b=e.target.closest("[data-act]"); const card=e.target.closest(".ti");
+  if(b?.dataset.act==="clear"){try{applyMail(await api("/api/mail?action=clear",{method:"POST",body:{}}))}catch(err){toast(err.message)}return}
+  if(!card) return; const it=mail.items.find(x=>x.key===card.dataset.key); if(!it) return;
+  if(b?.dataset.act==="seen"){it.seen=true;renderTray();markSeen({keys:[it.key]});tone("done")}
+  if(b?.dataset.act==="say") speak(`From ${it.fromName}. ${it.subject}. ${it.summary||""}`);
+  if(e.target.closest("a")&&!it.seen){markSeen({keys:[it.key]})}
+});
+
+/* accounts in Settings */
+let mailForm=null, msPoll=null;
+const HELP={
+  icloud:`Make an app-specific password at <a href="https://account.apple.com" target="_blank" rel="noopener">account.apple.com</a> › Sign-In and Security › App-Specific Passwords. Use your iCloud email address here, not your Apple password.`,
+  gmail:`Turn on 2-Step Verification, then create an app password at <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener">myaccount.google.com/apppasswords</a>. Paste the 16 letters here.`,
+  imap:`Use your provider's IMAP server name and, if they offer one, an app password.`,
+};
+function renderMailAccounts(){
+  const box=$("#mailList"); if(!box) return;
+  box.innerHTML=(mail.accounts.length?mail.accounts.map(a=>`<div class="macc" data-id="${esc(a.id)}" style="--c:${esc(a.color)}">
+      <span class="dot"></span><div class="macc-t"><strong>${esc(a.label)}</strong><small>${esc(a.email)}</small>
+      <small class="${a.lastError?"err":""}">${a.lastError?esc(a.lastError):a.lastCheck?(ago(a.lastCheck)==="now"?"Checked just now":"Checked "+esc(ago(a.lastCheck))+(/[mh]$/.test(ago(a.lastCheck))?" ago":"")):"Not checked yet"}</small></div>
+      <button type="button" class="ib" data-act="rm" aria-label="Remove ${esc(a.label)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></button></div>`).join("")
+    :`<div class="empty">No accounts yet. Add one below.</div>`);
+  const f=$("#mailForm");
+  if(!mailForm){f.innerHTML="";f.hidden=true;return}
+  f.hidden=false;
+  if(mailForm.provider==="outlook"){
+    f.innerHTML=mailForm.code
+      ?`<p><strong>1.</strong> Open <a href="${esc(mailForm.uri)}" target="_blank" rel="noopener">${esc(mailForm.uri.replace(/^https?:\/\//,""))}</a> and enter this code:</p>
+        <div class="devcode mono">${esc(mailForm.code)}</div>
+        <p><strong>2.</strong> Sign in with your Outlook or work account and press Accept. This page will notice and finish on its own.</p>
+        <div class="row"><button type="button" class="btn plain sm" data-act="cancel">Cancel</button><span class="status">Waiting for Microsoft…</span></div>`
+      :`<label>Name<input class="field" id="mfLabel" value="Outlook" placeholder="e.g. Work"></label>
+        <div class="row"><button type="button" class="btn primary sm" data-act="ms-start" ${mail.outlookReady?"":"disabled"}>Sign in with Microsoft</button><button type="button" class="btn plain sm" data-act="cancel">Cancel</button></div>
+        ${mail.outlookReady?"":`<p class="err">Add MS_CLIENT_ID in Vercel first. The setup guide in your GitHub repo shows how (about 5 minutes).</p>`}`;
+    return;
+  }
+  const p=mailForm.provider;
+  f.innerHTML=`<label>Name<input class="field" id="mfLabel" value="${esc({icloud:"iCloud",gmail:"Gmail",imap:"Email"}[p])}"></label>
+    <label>Email address<input class="field" id="mfEmail" type="email" autocomplete="off" placeholder="${p==="gmail"?"you@gmail.com":p==="icloud"?"you@me.com":"you@yourdomain.com"}"></label>
+    <label>App password<input class="field mono" id="mfPass" type="password" autocomplete="off" placeholder="${p==="gmail"?"abcd efgh ijkl mnop":"xxxx-xxxx-xxxx-xxxx"}"></label>
+    ${p==="imap"?`<label>IMAP server<input class="field mono" id="mfHost" placeholder="imap.yourprovider.com"></label>`:""}
+    <p class="help">${HELP[p]}</p>
+    <div class="row"><button type="button" class="btn primary sm" data-act="imap-save">Connect</button><button type="button" class="btn plain sm" data-act="cancel">Cancel</button><span class="status" id="mfStatus"></span></div>`;
+  setTimeout(()=>$("#mfEmail")?.focus(),30);
+}
+function nextColour(){const used=new Set([...mail.accounts.map(a=>a.color)]);return CAL_COLOURS.find(c=>!used.has(c))||CAL_COLOURS[mail.accounts.length%8]}
+$("#mailAdd").addEventListener("click",e=>{const b=e.target.closest("[data-prov]");if(!b)return;clearInterval(msPoll);mailForm={provider:b.dataset.prov};renderMailAccounts()});
+$("#mailBox").addEventListener("click",async e=>{
+  const b=e.target.closest("[data-act]"); if(!b) return;
+  if(b.dataset.act==="cancel"){clearInterval(msPoll);mailForm=null;renderMailAccounts();return}
+  if(b.dataset.act==="rm"){const row=b.closest(".macc");if(!b.classList.contains("confirm")){b.classList.add("confirm");b.textContent="Remove?";setTimeout(()=>renderMailAccounts(),3500);return}
+    try{applyMail(await api("/api/mail?action=remove",{method:"POST",body:{id:row.dataset.id}}));tone("del")}catch(err){toast(err.message)}return}
+  if(b.dataset.act==="imap-save"){
+    const st=$("#mfStatus"); b.disabled=true; st.textContent="Checking the login…";
+    try{applyMail(await api("/api/mail?action=add-imap",{method:"POST",body:{provider:mailForm.provider,label:$("#mfLabel").value,email:$("#mfEmail").value,password:$("#mfPass").value,host:$("#mfHost")?.value,color:nextColour()}}));
+      mailForm=null;renderMailAccounts();toast("Connected. New emails will show up here.");tone("done");checkMail(true)}
+    catch(err){st.textContent=err.message;b.disabled=false}
+    return}
+  if(b.dataset.act==="ms-start"){
+    b.disabled=true;
+    try{const j=await api("/api/mail?action=outlook-start",{method:"POST",body:{label:$("#mfLabel").value,color:nextColour()}});
+      mailForm={provider:"outlook",code:j.user_code,uri:j.verification_uri};renderMailAccounts();
+      clearInterval(msPoll);
+      msPoll=setInterval(async()=>{try{const r=await api("/api/mail?action=outlook-poll",{method:"POST",body:{}});
+        if(r.pending)return; clearInterval(msPoll); mailForm=null; applyMail(r); toast(`Connected ${r.connected}.`); tone("done"); checkMail(true)}
+        catch(err){clearInterval(msPoll);mailForm=null;renderMailAccounts();toast(err.message)}},Math.max(5,j.interval)*1000);
+    }catch(err){b.disabled=false;toast(err.message)}
+  }
+});
+async function loadMail(){ try{applyMail(await api("/api/mail?action=list"))}catch{} }
+setInterval(()=>{ if(document.visibilityState==="visible") checkMail() },120000);
+document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="visible") checkMail() });
 
 $("#dockNote").onclick=()=>{const i=$("#noteInput");i.scrollIntoView({behavior:"smooth",block:"center"});setTimeout(()=>i.focus({preventScroll:true}),350);tone("open")};
 $("#dockBrief").onclick=()=>$("#readBrief").click();

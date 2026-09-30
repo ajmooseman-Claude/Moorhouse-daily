@@ -12,6 +12,8 @@
     "test": "node test/smoke.js"
   },
   "dependencies": {
+    "imapflow": "^2.1.2",
+    "mailparser": "^3.9.32",
     "node-ical": "0.27.2"
   }
 }
